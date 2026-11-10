@@ -2,7 +2,7 @@
 
 SakayWise is a mobile-first Philippine commuter **academic prototype**, built with React, TypeScript and Vite. It compares explicitly mapped sample journeys, passenger-specific sample fares, local queue reports and simulated road advisories. Commuters can use it without an account.
 
-**This is ready for frontend/backend collaboration, not live travel guidance.** No Supabase client, backend, official fare feed, live traffic/GPS, push notifications or geographic map is connected. Support messages remain on the current device and are not sent to an administrator.
+**This is not live travel guidance.** The app runs in **demo mode** by default (bundled illustrative data, no network). An optional **live mode** connects to a Supabase backend (PostgreSQL + Auth + Realtime) for the transport network, fares, community queue reports, RoadWatch advisories and commuter-to-admin support messaging — see [docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md). No official fare feed, live traffic/GPS, push notifications or geographic map is connected, and the provided seed data is illustrative.
 
 ## Install and run
 
@@ -18,6 +18,8 @@ Open the URL printed by Vite, normally `http://localhost:5173/`. Desktop display
 ```sh
 npm run typecheck
 npm test
+npm run test:db     # database migrations, RLS and RPC tests (PGlite, no Docker)
+npm run seed:check  # supabase/seed.sql matches the frontend fixtures
 npm run build
 npm run preview
 ```
@@ -26,7 +28,7 @@ npm run preview
 
 ## Technology and folders
 
-Runtime dependencies: React and React DOM. Tooling: TypeScript, Vite and its React plugin. No map SDK, Supabase SDK, router or state-management dependency is installed.
+Runtime dependencies: React, React DOM and `@supabase/supabase-js` (loaded only in live mode). Tooling: TypeScript, Vite and its React plugin; `@electric-sql/pglite` for database tests. No map SDK, router or state-management dependency is installed.
 
 ```text
 src/
@@ -39,16 +41,18 @@ src/
       components/                  # Shell, sheets, timeline, onboarding, cards
       pages/                       # Routes, fares, queues, alerts, settings, support
       hooks/                       # Requests, modal focus and storage
-      services/                    # Typed contracts, central demo catalog/adapters
+      services/                    # Typed contracts, demo catalog, active catalog, Supabase adapters
       lib/                         # One route engine, fare/queue/advisory utilities
       data/                        # Illustrative fixtures, never a production DB
       types.ts                     # Existing commuter models
       types/                       # Route, RoadWatch and support models
     admin/                         # Reserved future dashboard; not implemented
+supabase/                          # Migrations, RLS, RPCs, generated demo seed, DB tests
 scripts/test.mjs                    # Dependency-free test runner
 tests/                             # Focused Node tests
 .github/workflows/ci.yml            # Validation only
-docs/BACKEND_HANDOFF.md             # Backend developer's starting point
+docs/BACKEND_INTEGRATION.md         # Backend setup, live/demo switch, contracts, tests
+docs/BACKEND_HANDOFF.md             # Original frontend handoff (contracts honoured by the backend)
 docs/FRONTEND_AUDIT.md              # Current audit and exact change inventory
 preview/                           # Historical standalone showcase; not app entry
 ```
@@ -75,13 +79,17 @@ LocalStorage is browser-origin-specific persistence, not authentication, a datab
 
 The loaded app can use bundled demo data without network requests, but there is no service worker, offline install/cache guarantee or native Capacitor build. Refreshing without cached assets may fail offline.
 
-## Backend modules and environment
+## Backend and environment
 
-The next developer should start with [BACKEND_HANDOFF.md](docs/BACKEND_HANDOFF.md). Required modules include transport/place catalog, versioned fare matrices, queue ingestion/moderation, verified advisory publication, guest-scoped support conversations/messages, administrator authentication/authorization and RLS. Do not create another route engine or replace the commuter UI.
+The Supabase backend lives in `supabase/` (migrations, Row-Level Security, RPCs, generated demo seed, tests). The commuter app keeps its single route engine and UI; Supabase is the data source. Start with [BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md); admin contracts are in [ADMIN_DATA_CONTRACTS.md](docs/ADMIN_DATA_CONTRACTS.md) and security/privacy notes in [BACKEND_SECURITY_PRIVACY.md](docs/BACKEND_SECURITY_PRIVACY.md).
 
-No environment file is needed for current demo mode. `.env.example` contains only commented future public frontend placeholders. Copying it to `.env.local` **does not activate Supabase**. The backend developer must deliberately implement/configure adapters, runtime payload validation, loading/retry states and provenance-aware labels before enabling remote data.
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SAKAYWISE_DATA_MODE` | `demo` (default) or `live` |
+| `VITE_SUPABASE_URL` | Project URL (live mode) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_…`); legacy `VITE_SUPABASE_ANON_KEY` also accepted |
 
-Only a project URL and public anon/publishable credential may enter browser `VITE_` configuration. Private/service-role keys and database passwords must remain in server-side secrets. Never use a guest UUID or frontend `isAdmin` flag as authorization. Do not commit real `.env` files.
+Copy `.env.example` to `.env.local`. In live mode a missing/invalid configuration or failed load shows an error with retry; demo data is never substituted silently. Guests stay account-free: an anonymous Supabase session is created only when they first submit a queue report or support message, and Row-Level Security scopes their data to that session. Only the project URL and publishable key may appear in `VITE_` variables — the app refuses to start with a secret/service-role key. Never use a frontend `isAdmin` flag as authorization; admin roles are enforced in the database.
 
 ## GitHub collaboration
 

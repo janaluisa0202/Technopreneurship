@@ -15,8 +15,8 @@ See [FRONTEND_AUDIT.md](FRONTEND_AUDIT.md) for the final audit and [BACKEND_HAND
 | Saved guides | Local snapshots and readable legacy guides | Explicit server migration/sync, retention and offline install/cache |
 | Personalization | English/Filipino, Light/Dark/System, 90–130% text, persistence | Real-device accessibility review |
 | Support | FAQ, optional details, validation and device-only draft/history | Private backend conversations/admin replies and real delivery events |
-| Data layer | Central demo catalog, typed contracts, async reference adapters, wired local queue adapter | Coordinated remote snapshot loader and provider adapters |
+| Data layer | Central demo catalog, typed contracts; **live mode**: validated Supabase snapshot loader, queue/RoadWatch/support adapters ([BACKEND_INTEGRATION.md](BACKEND_INTEGRATION.md)) | Hosted project setup; provenance-aware labels once verified data exists |
 | Validation | Typecheck, Node tests, Vite production build, CI workflow | Actual GitHub CI run after repository creation; no lint configured |
-| Authentication/admin | Reserved folder only | Backend guest authorization, administrator Auth/roles/RLS and dashboard |
+| Authentication/admin | Anonymous guest sessions, admin roles, RLS and admin RPCs in the database | Admin dashboard UI |
 
-This is a web prototype, not an Android APK/iOS IPA. No backend or service worker is configured. The final audit preserves demo functionality and does not implement another developer's backend assignment.
+This is a web prototype, not an Android APK/iOS IPA. The Supabase backend is optional (live mode); no service worker is configured. The final audit preserves demo functionality and does not implement another developer's backend assignment.
