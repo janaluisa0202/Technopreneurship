@@ -3,9 +3,9 @@ import type { SupportCategory, SupportConversation, SupportDraft, SupportMessage
 export const SUPPORT_STORAGE_KEY='sakaywise:support:v1';
 export const supportCategories:Record<SupportCategory,string>={route:'Route problems',fare:'Incorrect fares',roadwatch:'RoadWatch advisories',queue:'Queue reports',bug:'Application bugs',general:'General questions',other:'Other concerns'};
 export const emptySupportDraft=():SupportDraft=>({message:'',category:'general',nickname:'',email:'',relatedTrip:''});
-export type SupportErrorCode='empty'|'too-long'|'email'|'duplicate'|'storage'|'conversation'|'limit';
+export type SupportErrorCode='empty'|'too-long'|'email'|'duplicate'|'storage'|'conversation'|'limit'|'closed'|'rate-limited'|'unavailable'|'network';
 export class SupportError extends Error {constructor(public code:SupportErrorCode){super(code);}}
-export const supportErrorMessages:Record<SupportErrorCode,string>={empty:'Write a message before saving.', 'too-long':'Messages must be 2,000 characters or fewer.', email:'Enter a valid email address or leave it blank.', duplicate:'This message was just saved. Please wait before saving it again.', storage:'Unable to save on this device. Your draft remains available in this session.', conversation:'This local conversation is unavailable.', limit:'This demo conversation has reached its 100-message limit.'};
+export const supportErrorMessages:Record<SupportErrorCode,string>={empty:'Write a message before saving.', 'too-long':'Messages must be 2,000 characters or fewer.', email:'Enter a valid email address or leave it blank.', duplicate:'This message was just saved. Please wait before saving it again.', storage:'Unable to save on this device. Your draft remains available in this session.', conversation:'This local conversation is unavailable.', limit:'This demo conversation has reached its 100-message limit.', closed:'This conversation was closed by support. Your next message starts a new conversation.', 'rate-limited':'Too many messages in a short time. Please wait a minute, then try again. Your draft is kept.', unavailable:'Messaging support is not available right now. Your draft is kept on this device.', network:'Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.'};
 export function validateSupportDraft(draft:SupportDraft):SupportErrorCode|undefined {
   if(!draft.message.trim())return 'empty';if(draft.message.trim().length>2000)return 'too-long';if(draft.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim()))return 'email';return undefined;
 }
@@ -38,4 +38,6 @@ export function createLocalSupportService(storage:Pick<Storage,'getItem'|'setIte
   };
 }
 let service:SupportService|undefined;
+/** Live mode installs the remote adapter once, before the app renders (CommuterDataGate). */
+export function configureSupportService(next:SupportService){service=next;}
 export function getSupportService(){if(!service){let storage:Pick<Storage,'getItem'|'setItem'>;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw new Error('Storage unavailable');}};}service=createLocalSupportService(storage);}return service;}

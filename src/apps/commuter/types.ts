@@ -28,6 +28,10 @@ export interface QueueReport {
   isLocal?: boolean;
   reportedAt?: string;
   segmentId?: string;
+  // Additive (backend integration): server aggregates are never tagged isLocal.
+  source?: 'community-aggregate' | 'terminal-staff';
+  confidence?: 'low' | 'medium' | 'high';
+  sampleCount?: number;
 }
 export interface SavedTrip {
   key: string;
@@ -51,7 +55,9 @@ export interface Place {
   id: string;
   name: string;
   formattedAddress: string;
-  source: 'demo' | 'manual';
+  // 'remote' = loaded from the SakayWise database (additive; see docs/BACKEND_INTEGRATION.md).
+  source: 'demo' | 'manual' | 'remote';
+  provenance?: 'illustrative-demo' | 'verified-source';
   street?: string;
   building?: string;
   barangay?: string;

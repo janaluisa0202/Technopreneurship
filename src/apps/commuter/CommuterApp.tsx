@@ -3,7 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { MobileShell } from './components/MobileShell';
 import { Sheets } from './components/Sheets';
 import { LocationPicker } from './components/LocationPicker';
-import { demoPlaces, roadWatchDemoProvider } from './services/demoCatalog';
+import { roadWatchDemoProvider } from './services/demoCatalog';
+import { catalogPlaces as demoPlaces, getActiveCatalog, isLiveCatalog, popularJourneys } from './services/catalog';
+import { requireSupabaseClient, serverErrorCode } from './services/supabase/client';
+import { createRemoteQueueService, createRemoteRoadWatchProvider, QueueSubmitError } from './services/supabase/remoteServices';
+import { useLiveQueues } from './hooks/useLiveQueues';
 import { useRoadWatch } from './hooks/useRoadWatch';
 import { applyAdvisoryImpacts, advisoryMatchesRoute, advisoryTripContext } from './lib/advisoryImpact';
 import { defaultRoadWatchPreferences, isRoadWatchPreferences } from './lib/roadwatchService';
@@ -32,22 +36,38 @@ const fixtureParam=import.meta.env.DEV?new URLSearchParams(window.location.searc
 const fixture:RoadWatchScenario=fixtureParam==='clear' || fixtureParam==='closure' || fixtureParam==='no-alternative'?fixtureParam:'standard';
 const roadWatchProvider=roadWatchDemoProvider(fixture);
 
-const initialJourney: JourneyLocations = { from: selectPlace(demoPlaces[0]), to: selectPlace(demoPlaces[1]) };
+// Default journey = first popular pair of the ACTIVE catalog (demo: UST Frassati -> SM North, as before).
+function initialJourney(): JourneyLocations {
+  const pair=popularJourneys[0];
+  const from=demoPlaces.find(place=>place.id===pair?.originId), to=demoPlaces.find(place=>place.id===pair?.destinationId);
+  return { from: from?selectPlace(from):null, to: to?selectPlace(to):null };
+}
+const queueSubmitMessages:Record<string,string>={
+  rate_limited:'You have sent several reports recently. Please wait a few minutes before reporting again.',
+  duplicate_report:'You reported this terminal a moment ago. Please wait 3 minutes before reporting it again.',
+  guest_session_unavailable:'Queue reporting is not available right now. Please try again later.',
+};
+function userFacingError(message:string){const error=new Error(message);error.name='UserFacingError';return error;}
 export function CommuterApp() {
   const introduction=useIntroduction();
   const [tab,setTab] = useState<Tab>('routes');
-  const [journey,setJourney,journeyStorageError] = useStoredState<JourneyLocations>('journeyLocations',initialJourney,isJourneyLocations);
+  // Live adapters exist only when CommuterDataGate installed a database snapshot.
+  const [remote]=useState(()=>isLiveCatalog()?{queues:createRemoteQueueService(requireSupabaseClient()),roadwatch:createRemoteRoadWatchProvider(requireSupabaseClient())}:undefined);
+  const liveQueues=useLiveQueues(remote?.queues);
+  const [journey,setJourney,journeyStorageError] = useStoredState<JourneyLocations>('journeyLocations',initialJourney(),isJourneyLocations);
   const [recentLocations,setRecentLocations,recentLocationsStorageError] = useStoredState<SelectedLocation[]>('recentLocations',[],isRecentLocations);
   const [passenger,setPassenger,passengerStorageError] = useStoredState<Passenger>('passenger','regular',isPassenger);
   const [priority,setPriority] = useState<Priority>('time');
   const [selection,setSelection] = useState<{key:string;id:string}|null>(null);
-  const [reports,setReports,reportsStorageError] = useStoredState<QueueReport[]>('localReports',[],isQueueReports);
+  const [localReports,setLocalReports,reportsStorageError] = useStoredState<QueueReport[]>('localReports',[],isQueueReports);
+  // Live mode: server aggregates only. Device-local demo reports are never uploaded or mixed in.
+  const reports=remote?liveQueues.reports:localReports;
   const [saved,setSaved,savedStorageError] = useStoredState<SavedTrip[]>('savedTrips',[],isSavedTrips);
   const [watchedTrip,setWatchedTrip,watchedTripStorageError] = useStoredState<string|null>('watchedTrip',null,isWatch);
   const [preferences,setPreferences,preferencesStorageError] = useStoredState<AlertPreferences>('alertPrefs',{route:true,queue:true,price:false},isAlertPreferences);
   const [roadPreferences,setRoadPreferences,roadPreferencesStorageError]=useStoredState<RoadWatchPreferences>('roadwatchPrefs',defaultRoadWatchPreferences,isRoadWatchPreferences);
   const persistenceError=journeyStorageError || recentLocationsStorageError || passengerStorageError || reportsStorageError || savedStorageError || watchedTripStorageError || preferencesStorageError || roadPreferencesStorageError;
-  const roadwatch=useRoadWatch(roadWatchProvider);
+  const roadwatch=useRoadWatch(remote?.roadwatch ?? roadWatchProvider);
   const [sheet,setSheet] = useState<Sheet>(null);
   const [panel,setPanel]=useState<'settings'|'support'|'map'|null>(null);
   const [supportReturn,setSupportReturn]=useState<'settings'|null>(null);
@@ -134,7 +154,20 @@ export function CommuterApp() {
     setToast('Demo commute guide saved on this device.');
   }
   async function submitReport(place:string,level:QueueLevel,details:string) {
-    const service=createDemoQueueService({list:()=>reports,save:report=>{if(!setReports(previous=>[report,...previous].slice(0,15)))throw new Error('Storage unavailable');}});
+    if(remote){
+      try{
+        const terminalId=getActiveCatalog().queueTerminalIds[place];
+        if(!terminalId)throw new QueueSubmitError('unknown_terminal');
+        await remote.queues.submit(terminalId,level,details,createClientId());
+      }catch(cause){
+        const code=cause instanceof QueueSubmitError?cause.code:serverErrorCode(cause);
+        throw userFacingError(queueSubmitMessages[code] || 'Unable to send the queue report. Please retry.');
+      }
+      liveQueues.retry();
+      setTab('queues');setSheet(null);setSelection(null);setToast('Report sent as unverified community information. It counts for 30 minutes.');
+      return;
+    }
+    const service=createDemoQueueService({list:()=>localReports,save:report=>{if(!setLocalReports(previous=>[report,...previous].slice(0,15)))throw new Error('Storage unavailable');}});
     await service.submitReport({terminal:place,level,details,requestId:createClientId()});
     setTab('queues');setSheet(null);setSelection(null);setToast('Local community report saved. Estimates recalculated.');
   }
@@ -147,10 +180,10 @@ export function CommuterApp() {
   }
   return <MobileShell onSettings={()=>{setSheet(null);setPanel('settings');}} onSupport={()=>{setSheet(null);setSupportReturn(null);setPanel('support');}} alertCount={personal.badgeCount} tab={tab} onTab={setTab} toast={persistenceError?'':toast} notice={persistenceError?'Changes are available for this session only. Browser storage is unavailable.':introduction.storageError?'Introduction could not be saved on this device. It may appear again after reload.':undefined} overlayOpen={introduction.open || sheet!==null || panel!==null} savedCount={saved.length} onSaved={()=>setSheet({type:'saved'})}
     overlay={introduction.open?<Introduction onFinish={finishIntroduction} replaying={introduction.replaying} onClose={introduction.closeReplay}/>:panel==='settings'?<SettingsPage onIntroduction={()=>{setToast('');introduction.replay();}} onBack={()=>setPanel(null)} onSupport={()=>{setSupportReturn('settings');setPanel('support');}}/>:panel==='support'?<SupportCenter onBack={()=>setPanel(supportReturn)} returnFocus={supportReturn?'.settings-trigger':'.support-fab'}/>:panel==='map'?<MapOverview route={currentRoute} onBack={()=>setPanel(null)} onSave={saveGuide} onPassenger={setPassenger} onAdvisory={id=>{setPanel(null);openAdvisory(id);}} isSaved={saved.some(item=>item.route?.id===currentRoute?.id)}/>:sheet?.type==='location'?<LocationPicker key={sheet.field} field={sheet.field} current={journey[sheet.field]} other={journey[sheet.field==='from'?'to':'from']} recent={recentLocations} savedLocations={savedLocations} onClose={()=>setSheet(null)} onConfirm={location=>chooseLocation(sheet.field,location)}/>:
-      <Sheets sheet={displaySheet} advisories={roadwatch.advisories} advisoryContext={sheet?.type==='advisory'?contextFor(sheet.id):{affected:[]}} now={roadwatch.now} onAdvisory={openAdvisory} onAlternative={openAlternative} saved={saved} passenger={passenger} onPassenger={setPassenger} onSaveRoute={saveGuide} onClose={()=>setSheet(null)} onSavedTrip={key=>setSheet({type:'saved-trip',key})} onRemoveSaved={key=>{setSaved(previous=>previous.filter(item=>item.key!==key));setToast('Saved guide removed.');}} onSavedList={()=>setSheet({type:'saved'})} onReport={submitReport}/> }>
+      <Sheets sheet={displaySheet} advisories={roadwatch.advisories} advisoryContext={sheet?.type==='advisory'?contextFor(sheet.id):{affected:[]}} now={roadwatch.now} onAdvisory={openAdvisory} onAlternative={openAlternative} saved={saved} passenger={passenger} onPassenger={setPassenger} onSaveRoute={saveGuide} onClose={()=>setSheet(null)} onSavedTrip={key=>setSheet({type:'saved-trip',key})} onRemoveSaved={key=>{setSaved(previous=>previous.filter(item=>item.key!==key));setToast('Saved guide removed.');}} onSavedList={()=>setSheet({type:'saved'})} onReport={submitReport} liveReports={!!remote}/> }>
     {tab==='routes' && <RoutesPage onRetry={recommendations.retry} roadwatch={{advisories:matchingAdvisories,dataStatus:roadwatch.dataStatus,reference,alternative}} onAdvisory={openAdvisory} onAlternative={()=>openAlternative()} onRoadWatch={()=>setTab('alerts')} from={journey.from} to={journey.to} passenger={passenger} onPassenger={setPassenger} priority={priority} onPriority={value=>{setPriority(value);setSelection(null);}} routes={visibleRoutes} selectedRoute={currentRoute} status={recommendations.status} change={recommendations.change} recent={recentLocations} saved={saved} watched={isWatched} onSwap={swapLocations} onClearLocation={field=>chooseLocation(field,null)} onMap={()=>setPanel('map')} onPickLocation={field=>{setToast('');setSheet({type:'location',field});}} onDestination={chooseDestination} onSample={chooseSample} onSelectRoute={route=>setSelection({key:selectionKey,id:route.id})} onDetails={route=>{setSelection({key:selectionKey,id:route.id});setSheet({type:'route',route});}} onSave={saveGuide} onFareGuard={()=>setTab('fares')} onWatch={watchRoute}/>}
     {tab==='fares' && <FareMatrixPage passenger={passenger} onPassenger={setPassenger} route={fareRoute}/>}
-    {tab==='queues' && <QueuesPage reports={reports} now={recommendations.now} onReport={()=>setSheet({type:'report'})}/>}
+    {tab==='queues' && <QueuesPage reports={reports} now={recommendations.now} onReport={()=>setSheet({type:'report'})} live={remote?{noReport:liveQueues.noReport,status:liveQueues.status,onRetry:liveQueues.retry}:undefined}/>}
     {tab==='alerts' && <AlertsPage onRetry={roadwatch.retry} advisories={roadwatch.advisories} now={roadwatch.now} dataStatus={roadwatch.dataStatus} latestUpdate={roadwatch.latestUpdate} sourceLabel={roadwatch.label} relevantIds={relevantIds} watchedIds={personal.watchedIds} savedIds={personal.savedIds} roadPreferences={roadPreferences} onRoadPreference={key=>{setRoadPreferences(previous=>({...previous,[key]:!previous[key]}));setToast('RoadWatch preference saved locally.');}} onAdvisory={openAdvisory} onWatch={watchRoute} canWatch={!!watchId} watchCurrent={isWatched} watchedTrip={watchedTrip} preferences={preferences} onToggle={togglePreference} onStopWatch={()=>{setWatchedTrip(null);setToast('Route watch removed.');}} onGoRoutes={()=>setTab('routes')}/>}
   </MobileShell>;
 }

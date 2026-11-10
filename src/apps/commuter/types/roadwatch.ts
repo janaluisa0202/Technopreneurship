@@ -53,6 +53,8 @@ export interface AdvisoryFilters {
 export interface RoadWatchPreferences { closure:boolean; traffic:boolean; flooding:boolean; transport:boolean; roadworks:boolean; savedTrips:boolean; }
 export interface RoadWatchProvider {
   load: () => Promise<{ advisories: unknown[]; retrievedAt: string; label: string }>;
+  /** Optional: notify when the source changes so the hook reloads. Returns an unsubscribe function. */
+  subscribe?: (onChange: () => void) => () => void;
 }
 export interface AdvisoryTripContext {
   affected: RouteItinerary[];

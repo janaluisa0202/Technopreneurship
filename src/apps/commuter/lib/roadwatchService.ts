@@ -1,6 +1,6 @@
 import type { AdvisoryCategory, AdvisoryFilters, AdvisorySeverity, AdvisoryStatus, RoadAdvisory, RoadWatchPreferences } from '../types/roadwatch';
 import { normalizeLocationText } from './locations';
-import { transportNetwork } from '../services/demoCatalog';
+import { transportNetwork } from '../services/catalog';
 
 export const ADVISORY_FRESHNESS_MS = 24 * 60 * 60 * 1000;
 export const categoryLabels: Record<AdvisoryCategory,string> = { traffic:'Traffic', closure:'Road Closures', flooding:'Flooding', transport:'Public Transport', roadworks:'Roadworks' };

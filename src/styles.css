@@ -791,3 +791,9 @@ summary:focus-visible { outline:3px solid var(--blue); outline-offset:2px; borde
 .location-card-row .field-label { display:flex; align-items:center; justify-content:space-between; gap:5px; }
 .location-card-row .field-label svg { color:var(--muted); }
 .commute-leg:not(:last-child)::before { border-left:0; }
+
+/* Backend integration: live-data gate (loading / configuration / load errors) and inline retry links. */
+.data-gate { flex:1; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:32px calc(24px + var(--safe-right)) 32px calc(24px + var(--safe-left)); text-align:center; color:var(--text); }
+.data-gate .wordmark { margin:0 auto 4px; }
+.data-gate p { margin:0; line-height:1.6; }
+.link-button { background:none; border:0; padding:0 2px; color:inherit; font:inherit; font-weight:700; text-decoration:underline; cursor:pointer; min-height:0; }

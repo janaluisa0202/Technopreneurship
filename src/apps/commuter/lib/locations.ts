@@ -1,4 +1,4 @@
-import { demoPlaces, demoRoutePlaces, sampleTrips } from '../services/demoCatalog';
+import { catalogPlaces, catalogRoutePlaces, legacyTrips } from '../services/catalog';
 import type { AddressDetails, JourneyLocations, LocationSearchProvider, Place, SelectedLocation } from '../types';
 
 export const emptyAddressDetails = (): AddressDetails => ({
@@ -16,7 +16,7 @@ export function matchesSavedLocation(location: SelectedLocation, query: string):
   return matchesLocation({ ...location.place, formattedAddress: `${location.place.formattedAddress} ${Object.values(location.details).join(' ')}` }, query);
 }
 export const demoLocationSearch: LocationSearchProvider = {
-  async search(query) { return demoPlaces.filter(place => matchesLocation(place, query)); },
+  async search(query) { return catalogPlaces.filter(place => matchesLocation(place, query)); },
 };
 export function selectPlace(place: Place): SelectedLocation {
   return { place, details: emptyAddressDetails() };
@@ -38,7 +38,7 @@ export function finalizeLocation(location: SelectedLocation): SelectedLocation {
   if (place.source === 'manual') {
     // Exact manually typed catalog names resolve to their real local identity;
     // a mere partial match never grants access to demo transit estimates.
-    const known = demoPlaces.find(candidate =>
+    const known = catalogPlaces.find(candidate =>
       normalizeLocationText(candidate.name) === normalizeLocationText(address) ||
       normalizeLocationText(candidate.formattedAddress) === normalizeLocationText(address));
     place = known || { ...place, id: `manual:${normalizeLocationText(address)}` };
@@ -49,10 +49,10 @@ export function finalizeLocation(location: SelectedLocation): SelectedLocation {
 }
 export function findDemoTrip(journey: JourneyLocations) {
   const routeName = (location: SelectedLocation | null) => location?.place.source === 'demo'
-    ? demoRoutePlaces.find(place => place.id === location.place.id)?.name : undefined;
+    ? catalogRoutePlaces.find(place => place.id === location.place.id)?.name : undefined;
   const from = routeName(journey.from);
   const to = routeName(journey.to);
-  return from && to ? sampleTrips.find(trip => trip.from === from && trip.to === to) : undefined;
+  return from && to ? legacyTrips.find(trip => trip.from === from && trip.to === to) : undefined;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -60,8 +60,8 @@ export function isSelectedLocation(value: unknown): value is SelectedLocation {
   if (!isRecord(value) || !isRecord(value.place) || !isRecord(value.details)) return false;
   const place = value.place;
   if (!['id', 'name', 'formattedAddress'].every(key => typeof place[key] === 'string' && (place[key] as string).trim().length > 0)) return false;
-  if (place.source !== 'demo' && place.source !== 'manual') return false;
-  if (place.source === 'demo' && !demoPlaces.some(candidate => candidate.id === place.id)) return false;
+  if (place.source !== 'demo' && place.source !== 'manual' && place.source !== 'remote') return false;
+  if (place.source !== 'manual' && !catalogPlaces.some(candidate => candidate.id === place.id && candidate.source === place.source)) return false;
   const details = value.details;
   return Object.keys(emptyAddressDetails()).every(key => typeof details[key] === 'string') && Object.values(details).every(value => typeof value === 'string');
 }

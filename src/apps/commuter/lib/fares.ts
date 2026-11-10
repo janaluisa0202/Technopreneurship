@@ -1,4 +1,4 @@
-import { sampleDistanceProfiles } from '../services/demoCatalog';
+import { distanceProfiles } from '../services/catalog';
 import type { FareMode, Passenger } from '../types';
 import type { FareTable, RouteItinerary } from '../types/route';
 
@@ -13,7 +13,7 @@ export function totalFares(values: (number | null)[]) {
   return { fare: missingFares ? null : knownFare, knownFare, missingFares };
 }
 export function sampleDistanceFare(mode: FareMode, distance: number, passenger: Passenger): number | null {
-  const profile = sampleDistanceProfiles[mode];
+  const profile = distanceProfiles[mode];
   const base = fareForPassenger(profile.base, passenger);
   const extra = fareForPassenger(profile.perKm, passenger);
   return base === null || extra === null ? null : roundFare(base + Math.max(0, distance - profile.thresholdKm) * extra);

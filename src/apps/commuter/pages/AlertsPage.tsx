@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { RoadWatchCard } from '../components/roadwatch/RoadWatchCard';
 import { RoadWatchFilters } from '../components/roadwatch/RoadWatchFilters';
 import { RoadWatchSummary } from '../components/roadwatch/RoadWatchSummary';
-import { demoPlaces, sampleTrips } from '../services/demoCatalog';
+import { catalogPlaces, legacyTrips } from '../services/catalog';
 import { defaultAdvisoryFilters, filterAdvisories } from '../lib/roadwatchService';
 import type { AlertPreferences } from '../types';
 import type { RoadAdvisory, RoadWatchDataStatus, RoadWatchPreferences } from '../types/roadwatch';
@@ -39,8 +39,8 @@ export function AlertsPage(props:Props){
   const [filters,setFilters]=useState(defaultAdvisoryFilters);
   const filtered=useMemo(()=>filterAdvisories(advisories,filters,now,relevantIds),[advisories,filters,now,relevantIds]);
   const [originId,destinationId]=(watchedTrip || '').split(':');
-  const origin=demoPlaces.find(place=>place.id===originId),destination=demoPlaces.find(place=>place.id===destinationId);
-  const trip=origin && destination?{from:origin.name,to:destination.name}:sampleTrips.find(item=>item.id===watchedTrip);
+  const origin=catalogPlaces.find(place=>place.id===originId),destination=catalogPlaces.find(place=>place.id===destinationId);
+  const trip=origin && destination?{from:origin.name,to:destination.name}:legacyTrips.find(item=>item.id===watchedTrip);
   const myAdvisories=advisories.filter(item=>watchedIds.has(item.id) || savedIds.has(item.id));
   return <div className="fade">
     {(dataStatus==='unavailable' || dataStatus==='outdated') && <button type="button" className="small-outline" onClick={onRetry}>{text("Retry advisory data")}</button>}
