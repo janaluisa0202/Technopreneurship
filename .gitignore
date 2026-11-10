@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+*.local
+coverage/
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# Local tools, caches and temporary exports
+.idea/
+.codex/
+.agents/
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
+Thumbs.db
+Desktop.ini
+.vite/
+# Private credentials (public example configuration is allowed above)
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json

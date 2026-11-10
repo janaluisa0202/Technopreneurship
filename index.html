@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#ffc324" />
+  <meta name="description" content="SakayWise commuter route and fare decision-making prototype." />
+  <script>
+    // Apply only validated guest appearance preferences before the app paints.
+    try {
+      const pref = JSON.parse(localStorage.getItem('sakaywise:settings:v1') || 'null');
+      if (pref && ['en','fil'].includes(pref.language) && ['light','dark','system'].includes(pref.appearance) && [90,100,110,120,130].includes(pref.textSize)) {
+        const theme = pref.appearance === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref.appearance;
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.lang = pref.language;
+        document.documentElement.style.fontSize = pref.textSize + '%';
+        document.documentElement.style.colorScheme = theme;
+      } else {
+        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } catch { document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+  </script>
+  <title>SakayWise · Your Queue-Aware Commute Companion</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

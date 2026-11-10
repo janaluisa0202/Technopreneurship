@@ -1,0 +1,27 @@
+import type { RoadAdvisory, RoadWatchProvider, RoadWatchScenario } from '../types/roadwatch';
+
+// Every record is simulated. Times are relative to a captured simulation clock,
+// never evidence of a real incident. Tests supply a fixed clock deterministically.
+export function createRoadWatchDemoData(now:number,scenario:RoadWatchScenario='standard'):RoadAdvisory[] {
+  const time=(minutes:number)=>new Date(now+minutes*60000).toISOString();
+  const make=(id:string,patch:Partial<RoadAdvisory>):RoadAdvisory=>({
+    id,title:'Simulated advisory',description:'Fictional transport scenario for SakayWise prototype demonstration.',category:'traffic',severity:'low',status:'active',sourceType:'demo',sourceName:'SakayWise local simulation',verificationStatus:'simulated',areaName:'Demo network',affectedRouteIds:[],affectedSegmentIds:[],affectedStopIds:[],affectedServiceIds:[],impactType:'informational',effectConfirmed:false,publishedAt:time(-40),updatedAt:time(-5),startsAt:time(-30),endsAt:time(120),...patch,
+  });
+  const closure=make('rw-espanaclosure',{title:'Simulation: España boarding segment closure',description:'A simulated closure affects the mapped España jeepney segment. This is not a report of an actual road closure.',category:'closure',severity:'high',areaName:'España Boulevard, Manila · Demo boarding area',affectedSegmentIds:['ust-north-jeep'],impactType:'segment-closure',effectConfirmed:true,suggestedAction:'Compare the remaining mapped demo itineraries and verify actual conditions before boarding.'});
+  if(scenario==='clear')return [];
+  if(scenario==='closure')return [{...closure,affectedSegmentIds:['ust-north-jeep','ust-north-uv'],title:'Simulation: España road services unavailable'}];
+  if(scenario==='no-alternative')return [make('rw-all-ust-closed',{title:'Simulation: mapped UST departures unavailable',description:'This presentation fixture closes every mapped UST departure. It demonstrates the no-alternative state without claiming a real terminal closure.',category:'closure',severity:'critical',areaName:'UST Frassati · Demo departure connections',affectedStopIds:['ust-frassati'],impactType:'segment-closure',effectConfirmed:true})];
+  return [
+    closure,
+    make('rw-traffic',{incidentId:'demo-espanatraffic',title:'Simulation: minor España travel delay',description:'An explicit three-minute additional riding delay is supplied for the mapped UV Express leg. It is separate from queue waiting.',severity:'moderate',areaName:'España Boulevard, Manila · UV Express sample segment',affectedSegmentIds:['ust-north-uv'],impactType:'delay',effectConfirmed:true,estimatedDelayMinutes:3,delayBasis:'additional-travel',delayEvidence:'simulation'}),
+    make('rw-service',{title:'Simulation: Pasay city bus interruption',description:'The mapped Pasay–MOA city bus service is unavailable within this fictional scenario. Other services are not automatically suspended.',category:'transport',severity:'high',areaName:'Pasay Rotonda · City Bus / MOA sample service',affectedServiceIds:['srv:pasay-moa-bus'],impactType:'service-interruption',effectConfirmed:true}),
+    make('rw-flood-warning',{title:'Simulation: uncertain road access near Pasay',description:'A fictional flooding warning has no confirmed passability or numeric delay. It warns commuters without closing a segment or changing its time.',category:'flooding',severity:'critical',areaName:'Pasay Rotonda sample boarding area',affectedStopIds:['pasay-road'],impactType:'unknown',suggestedAction:'Check reliable, current road access information before traveling. Do not infer that a route is safe from its availability in the demo.'}),
+    make('rw-roadworks',{title:'Simulation: scheduled One Ayala roadworks',description:'Sample maintenance starts later in the simulation. The supplied delay does not apply before the effective start.',category:'roadworks',severity:'moderate',status:'scheduled',areaName:'One Ayala terminal · Makati',affectedSegmentIds:['ayala-pitx-uv'],impactType:'delay',effectConfirmed:true,estimatedDelayMinutes:8,delayBasis:'additional-travel',delayEvidence:'simulation',startsAt:time(60),endsAt:time(180)}),
+    make('rw-resolved',{title:'Simulation: resolved PITX access notice',description:'This fictional terminal access issue has been resolved and must not change current route recommendations.',category:'closure',severity:'high',status:'resolved',areaName:'PITX, Parañaque',affectedStopIds:['pitx-platform'],impactType:'segment-closure',effectConfirmed:true,endsAt:time(-10),updatedAt:time(-2)}),
+    make('rw-expired',{title:'Simulation: ended MRT maintenance window',description:'The sample effective period has ended. This advisory remains in the feed as expired and does not affect routing.',category:'roadworks',severity:'moderate',areaName:'Legarda / Cubao rail sample connections',affectedServiceIds:['srv:legarda-cubao'],impactType:'service-interruption',effectConfirmed:true,endsAt:time(-1)}),
+    make('rw-unrelated',{title:'Simulation: Marikina local information',description:'An unrelated sample notice near the sports center. It must not affect an España, Pasay, or One Ayala itinerary.',category:'traffic',areaName:'Marikina Sports Center · Sumulong Highway',affectedStopIds:['marikina-sports'],impactType:'informational'}),
+  ];
+}
+export function roadWatchDemoProvider(scenario:RoadWatchScenario='standard',clock=Date.now()):RoadWatchProvider {
+  return {async load(){return {advisories:createRoadWatchDemoData(clock,scenario),retrievedAt:new Date(clock).toISOString(),label:'DEMO ADVISORIES'};}};
+}
