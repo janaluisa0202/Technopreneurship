@@ -10,6 +10,7 @@ create table auth.users (
   id uuid primary key,
   email text,
   is_anonymous boolean not null default false,
+  raw_user_meta_data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 create function auth.jwt() returns jsonb language sql stable as $$

@@ -22,9 +22,10 @@ export async function createDatabase({ seed = true } = {}) {
 }
 
 /** Creates an auth.users row. kind: 'anonymous' (guest) or 'registered'. */
-export async function createUser(db, kind = 'anonymous') {
+export async function createUser(db, kind = 'anonymous', { name = null, email = null } = {}) {
   const id = randomUUID();
-  await db.query('insert into auth.users (id, is_anonymous) values ($1, $2)', [id, kind === 'anonymous']);
+  await db.query('insert into auth.users (id, is_anonymous, email, raw_user_meta_data) values ($1, $2, $3, $4)',
+    [id, kind === 'anonymous', email, JSON.stringify(name ? { display_name: name } : {})]);
   return { id, kind };
 }
 

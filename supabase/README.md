@@ -18,8 +18,9 @@
 | `20261110120400_roadwatch.sql` | `road_advisories`, `road_advisory_impacts` |
 | `20261110120500_support_messaging.sql` | `support_conversations`, `support_messages`, `support_*` RPCs |
 | `20261110120600_accounts_retention_realtime.sql` | Optional account tables, `private.purge_expired_data()`, Realtime publication |
+| `20261112120000_admin_dashboard_integration.sql` | `profiles`, `promos`, `announcements`, `admin_messages`, staff RPCs (`admin_send_message`, `admin_list_users`, `support_set_spam`, `support_mark_unread`, `touch_profile`, `admin_log_event`), queue `spam`, advisory `operator` source, audit `detail`/`EVENT` (see docs/ADMIN_SUPABASE_INTEGRATION.md) |
 
-All migrations are **additive** (new objects only). They do not alter or drop anything that existed before, because no schema existed before.
+All migrations are **additive**. The 2026-11-12 migration also widens three CHECK constraints (`queue_reports.moderation_status`, `road_advisories.source_type`, `admin_audit_log.action`), replaces `get_queue_estimates()` with the same signature, and adds one defaulted column; no data is removed.
 
 ## Applying
 
@@ -51,4 +52,5 @@ Supabase migrations are forward-only; recovery is done with a new migration, nev
    Dropping tables destroys their data — export first and get team approval.
 3. **Wipe a local database:** `npx supabase db reset` rebuilds from migrations + seed.
 4. **Remove demo data from a shared project:** delete rows whose `provenance = 'illustrative-demo'` / `verification_status in ('illustrative-sample','simulated')`, children first (impacts, fare rules, segments, then stops/services/terminals/places). Queue reports reference terminals with `on delete restrict`, so purge or reassign reports first.
-5. **Migration history drift** (`supabase migration list` shows mismatches): repair with `npx supabase migration repair --status applied|reverted <version>` after confirming the real schema state.
+5. **Undo `20261112120000`** (new migration; export data first): drop `admin_send_message`, `admin_list_users`, `support_set_spam`, `support_mark_unread`, `touch_profile`, `admin_log_event`; drop tables `admin_messages`, `announcements`, `promos`, `profiles` and trigger `sakaywise_profile_sync` on `auth.users`; drop the two support activity triggers and `support_conversations.flagged_spam`; set any `spam` reports to `rejected`, any `operator` advisories to `community`, and any `EVENT` audit rows' action to `UPDATE` before restoring the old CHECK constraints; restore the previous `get_queue_estimates()` body from `20261110120300`.
+6. **Migration history drift** (`supabase migration list` shows mismatches): repair with `npx supabase migration repair --status applied|reverted <version>` after confirming the real schema state.
