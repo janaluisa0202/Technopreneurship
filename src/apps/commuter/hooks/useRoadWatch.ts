@@ -16,6 +16,7 @@ export function useRoadWatch(provider:RoadWatchProvider) {
     }).catch(()=>{if(active){setState({advisories:[],label:'RoadWatch data unavailable',loaded:true,error:true});setNow(Date.now());}});
     return ()=>{active=false;};
   },[provider,attempt]);
+  useEffect(()=>provider.subscribe?.(()=>setAttempt(value=>value+1)),[provider]);
   useEffect(()=>{
     const boundaries=state.advisories.flatMap(item=>[advisoryTimestamp(item.startsAt),advisoryTimestamp(item.endsAt),(advisoryTimestamp(item.updatedAt) || 0)+ADVISORY_FRESHNESS_MS]);
     boundaries.push((advisoryTimestamp(state.retrievedAt) || 0)+ADVISORY_FRESHNESS_MS);

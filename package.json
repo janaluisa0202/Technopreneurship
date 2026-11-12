@@ -8,13 +8,18 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "test:db": "node --test \"supabase/db-tests/*.test.mjs\"",
+    "seed:generate": "node scripts/generate-demo-seed.mjs",
+    "seed:check": "node scripts/generate-demo-seed.mjs --check"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

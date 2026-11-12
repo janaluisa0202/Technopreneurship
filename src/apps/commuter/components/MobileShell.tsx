@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { useKeyboardViewport } from '../hooks/useKeyboardViewport';
 import type { Tab } from '../types';
+import { getActiveCatalog, isLiveCatalog } from '../services/catalog';
 
 interface Props {
   tab: Tab;
@@ -39,7 +40,7 @@ export function MobileShell({tab,onTab,children,overlay,toast,notice,overlayOpen
         <header className="brand-banner">
           <div className="brand-copy">
             <div className="wordmark">Sakay<span>Wise</span></div>
-            <div className="brand-demo">{t("Demo · Illustrative transit data")}</div>
+            <div className="brand-demo">{isLiveCatalog()?text(getActiveCatalog().provenance==='verified-source'?'SakayWise database':'Demo data · SakayWise database'):t("Demo · Illustrative transit data")}</div>
           </div>
           <div className="header-actions"><button className="saved-button" type="button" onClick={onSaved}
             aria-label={text(`Saved trip guides, ${savedCount} saved`)} aria-haspopup="dialog">

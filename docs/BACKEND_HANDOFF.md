@@ -1,5 +1,7 @@
 # SakayWise backend handoff
 
+> **Update (backend integration):** the backend described here is now implemented on `feature/backend-integration`. See [BACKEND_INTEGRATION.md](BACKEND_INTEGRATION.md). The contracts below were kept; the statements about "no backend" describe the pre-integration state.
+
 Read this before adding Supabase. The frontend is a functioning local academic demo. There is no configured backend, client SDK, Auth, RLS, server endpoint, realtime subscription, push service or geographic map. The audit adds contracts and demo adapters, **not backend implementations**. No environment variable currently changes data mode.
 
 ## Data-access boundaries and actual wiring

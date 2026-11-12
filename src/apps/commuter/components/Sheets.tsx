@@ -1,4 +1,4 @@
-import { queueReportTerminals } from '../services/demoCatalog';
+import { queueReportTerminals } from '../services/catalog';
 import { useI18n } from '../../../shared/i18n';
 import { useLayoutEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react';
 import { Icon } from './Icon';
@@ -26,13 +26,14 @@ interface Props {
   onRemoveSaved: (key:string) => void;
   onSavedList: () => void;
   onReport: (place:string,level:QueueLevel,details:string) => Promise<void>;
+  liveReports?: boolean;
 }
 
-export function Sheets({sheet,saved,advisories,advisoryContext,now,onAdvisory,onAlternative,passenger,onPassenger,onSaveRoute,onClose,onSavedTrip,onRemoveSaved,onSavedList,onReport}: Props) {
+export function Sheets({sheet,saved,advisories,advisoryContext,now,onAdvisory,onAlternative,passenger,onPassenger,onSaveRoute,onClose,onSavedTrip,onRemoveSaved,onSavedList,onReport,liveReports=false}: Props) {
   const {t,text,locale}=useI18n();
 
   const [reportBusy,setReportBusy]=useState(false);
-  const [reportError,setReportError]=useState(false);
+  const [reportError,setReportError]=useState('');
   const submitting=useRef(false);
   const panelRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -55,8 +56,8 @@ export function Sheets({sheet,saved,advisories,advisoryContext,now,onAdvisory,on
     const place = String(form.get('terminal') || 'UST España');
     const level = String(form.get('level') || 'low') as QueueLevel;
     const details = String(form.get('details') || '').trim().slice(0,150);
-    if(submitting.current)return;submitting.current=true;setReportBusy(true);setReportError(false);
-    try{await onReport(place,level,details);}catch{setReportError(true);}finally{submitting.current=false;setReportBusy(false);}
+    if(submitting.current)return;submitting.current=true;setReportBusy(true);setReportError('');
+    try{await onReport(place,level,details);}catch(cause){setReportError(cause instanceof Error && cause.name==='UserFacingError'?cause.message:'Unable to save the queue report. Please retry.');}finally{submitting.current=false;setReportBusy(false);}
   }
   return <div className="overlay show" onMouseDown={(event:MouseEvent<HTMLDivElement>)=>{if(event.target===event.currentTarget)onClose();}}>
     <section className="sheet" ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
@@ -80,7 +81,7 @@ export function Sheets({sheet,saved,advisories,advisoryContext,now,onAdvisory,on
         <button type="button" className="submit" onClick={onSavedList}>{t("Back to saved guides")}</button>
       </>}
       {sheet.type==='report' && <>
-        <p className="sheet-note">{t("Submit a simulated community report. It will affect your route estimate on this device only and will not be shared publicly.")}</p>
+        <p className="sheet-note">{liveReports?text("Your report is sent to SakayWise as unverified community information. It is combined with other commuters' reports and expires after 30 minutes. Do not include personal details."):t("Submit a simulated community report. It will affect your route estimate on this device only and will not be shared publicly.")}</p>
         <form id="queueForm" onSubmit={submitReport}>
           <label htmlFor="terminal">{t("Terminal or stop")}</label>
           <select name="terminal" id="terminal" required>{queueReportTerminals.map(terminal=><option key={terminal} value={terminal}>{terminal}</option>)}</select>
@@ -88,7 +89,7 @@ export function Sheets({sheet,saved,advisories,advisoryContext,now,onAdvisory,on
           <select id="level" name="level"><option value="low">{t("Low — moving quickly")}</option><option value="mid">{t("Moderate — some waiting")}</option><option value="high">{t("High — long lines")}</option></select>
           <label htmlFor="details">{t("Details (optional)")}</label>
           <textarea id="details" name="details" maxLength={150} placeholder={t("e.g., a long queue at northbound jeepney stop")} />
-          <button type="submit" className="submit" disabled={reportBusy}>{reportBusy?t("Saving..."):t("Submit demo report")}</button>{reportError && <p role="alert" className="location-validation">{text("Unable to save the queue report. Please retry.")}</p>}
+          <button type="submit" className="submit" disabled={reportBusy}>{reportBusy?text(liveReports?'Sending...':'Saving...'):text(liveReports?'Submit report':'Submit demo report')}</button>{reportError && <p role="alert" className="location-validation">{text(reportError)}</p>}
         </form>
       </>}
       </div>

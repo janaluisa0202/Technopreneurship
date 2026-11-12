@@ -29,10 +29,12 @@ const nav: { key: RouteKey; label: string; icon: IconName }[] = [
 /** Rendered by src/admin-main.tsx once the shared session says the user is an admin. */
 export function AdminApp({ account, onSignOut }: { account: AdminAccount; onSignOut: () => void }) {
   const [appearance, setAppearance] = useAppearance();
-  useEffect(() => { adminStore.setActor(account); }, [account]);
+  // Registered during the first render: child effects (the live data loader) run before this component's effects.
+  useState(() => { void adminStore.setActor(account); });
+  useEffect(() => { void adminStore.setActor(account); }, [account]);
   return (
     <ToastProvider>
-      <Shell admin={account} onSignOut={() => { adminStore.logAuth('Signed out', account); onSignOut(); }} appearance={appearance} onAppearance={setAppearance} />
+      <Shell admin={account} onSignOut={() => { void adminStore.logAuth('Signed out', account); onSignOut(); }} appearance={appearance} onAppearance={setAppearance} />
     </ToastProvider>
   );
 }
@@ -82,6 +84,8 @@ function Shell({ admin, onSignOut, appearance, onAppearance }: { admin: AdminAcc
           <div className="admin-chip"><span className="avatar">{initials(admin.name)}</span><span className="admin-chip-text"><strong>{admin.name}</strong><small>{admin.role === 'owner' ? 'Owner' : 'Moderator'}</small></span></div>
         </header>
         <main id="main" className="content" tabIndex={-1} ref={main}>
+          {state.sync.mode === 'live' && state.sync.status === 'loading' && <div className="notice" role="status"><Icon name="info" size={18} /><span>Loading live data from the SakayWise server…</span></div>}
+          {state.sync.mode === 'live' && state.sync.status === 'error' && <div className="notice" role="alert"><Icon name="info" size={18} /><span>{state.sync.error}</span> <button type="button" className="btn small ghost" onClick={state.sync.refresh}>Retry</button></div>}
           {route.key === 'dashboard' && <Dashboard admin={admin} />}
           {route.key === 'promos' && <Promos />}
           {route.key === 'help' && <HelpCenter selectedId={route.param} />}

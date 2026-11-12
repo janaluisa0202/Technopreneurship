@@ -12,7 +12,8 @@ export interface RoadAdvisory {
   category: AdvisoryCategory;
   severity: AdvisorySeverity;
   status: AdvisoryStatus;
-  sourceType: 'demo' | 'official' | 'community' | 'unknown';
+  /** 'operator' = posted by SakayWise staff in the admin console (not a government source). */
+  sourceType: 'demo' | 'official' | 'community' | 'operator' | 'unknown';
   sourceName: string;
   sourceUrl?: string;
   verificationStatus: 'simulated' | 'verified' | 'unverified';
@@ -53,6 +54,8 @@ export interface AdvisoryFilters {
 export interface RoadWatchPreferences { closure:boolean; traffic:boolean; flooding:boolean; transport:boolean; roadworks:boolean; savedTrips:boolean; }
 export interface RoadWatchProvider {
   load: () => Promise<{ advisories: unknown[]; retrievedAt: string; label: string }>;
+  /** Optional: notify when the source changes so the hook reloads. Returns an unsubscribe function. */
+  subscribe?: (onChange: () => void) => () => void;
 }
 export interface AdvisoryTripContext {
   affected: RouteItinerary[];

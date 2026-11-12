@@ -8,8 +8,14 @@ import { newId } from '../lib/format';
 import { createSeedState } from './seed';
 import { customerDirectory } from '../../../shared/auth/authService';
 import { SupportStoreError, supportStore, useConversations } from '../../../shared/messaging/supportStore';
+import { DEMO_MODE } from '../../../shared/auth/authService';
+import { sampleTrips } from '../../commuter/data/demo';
+import { LiveActionError, liveAdminStore, useLiveAdminState } from './liveStore';
+import type { RouteOption, SyncState } from '../types';
 
 /**
+ * DEMO data layer (VITE_SAKAYWISE_DATA_MODE=demo). Live mode uses ./liveStore.ts (Supabase) through the
+ * `adminStore` / `useAdminState` facade at the bottom of this file; pages do not know which one runs.
  * Local demo data layer. Everything the pages read or change goes through `adminStore`, so swapping in a real
  * backend later means re-implementing these functions with API calls (and enforcing permissions server-side).
  */
@@ -48,7 +54,7 @@ const now = () => new Date().toISOString();
 
 export class ValidationError extends Error {}
 
-export const adminStore = {
+const demoStore = {
   getState: () => state,
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
   setActor(account: AdminAccount | null) { actor = account; },
@@ -122,7 +128,7 @@ export const adminStore = {
   },
 
   /* ---------- Direct messages ---------- */
-  sendDirectMessage(input: { audience: Audience; recipientId?: string; recipientLabel: string; purpose: MessagePurpose; subject: string; body: string; promoId?: string }): DirectMessage {
+  sendDirectMessage(input: { audience: Audience; recipientId?: string; recipientLabel: string; routeKey?: string; purpose: MessagePurpose; subject: string; body: string; promoId?: string }): DirectMessage {
     if (!input.subject.trim()) throw new ValidationError('Add a subject.');
     if (!input.body.trim()) throw new ValidationError('Write a message.');
     if (input.audience === 'one' && !input.recipientId) throw new ValidationError('Choose who should receive this message.');
@@ -134,7 +140,8 @@ export const adminStore = {
       try { supportStore.adminMessageUser({ id: input.recipientId, name: input.recipientLabel }, { id: actor?.id ?? 'adm', name: adminName() }, input.subject, input.body); delivery = 'sent'; }
       catch (e) { throw toValidation(e); }
     }
-    const dm: DirectMessage = { ...input, subject: input.subject.trim(), body: input.body.trim(), id: newId('dm'), sentAt: ts, sentBy: adminName(), delivery };
+    const { routeKey: _routeKey, ...fields } = input;
+    const dm: DirectMessage = { ...fields, subject: input.subject.trim(), body: input.body.trim(), id: newId('dm'), sentAt: ts, sentBy: adminName(), delivery };
     commit(withLog({ ...state, messages: [dm, ...state.messages] }, 'message', `Sent ${input.audience === 'all' ? 'broadcast' : input.audience === 'route' ? 'route message' : 'direct message'}`, `${dm.recipientLabel} · ${dm.subject}`));
     return dm;
   },
@@ -188,8 +195,10 @@ function toValidation(e: unknown): Error {
 }
 
 /** Stored admin data + shared conversations + customer accounts, as one object for the pages. */
-export function useAdminState(): AdminView {
-  const base = useSyncExternalStore(adminStore.subscribe, adminStore.getState, adminStore.getState);
+const demoRoutes: RouteOption[] = Array.from(new Set(sampleTrips.map(t => `${t.from} → ${t.to}`))).map(label => ({ key: label, label }));
+const demoSync: SyncState = { mode: 'demo', status: 'ready', refresh: () => {} };
+function useDemoAdminState(): AdminView {
+  const base = useSyncExternalStore(demoStore.subscribe, demoStore.getState, demoStore.getState);
   const conversations = useConversations();
   const customers = useSyncExternalStore(customerDirectory.subscribe, customerDirectory.getSnapshot, customerDirectory.getSnapshot);
   return useMemo(() => {
@@ -199,6 +208,22 @@ export function useAdminState(): AdminView {
       const last = Math.max(lastMessage, lastLogin, Date.parse(c.createdAt) || 0);
       return { id: c.id, nickname: c.name, email: c.email, kind: 'account', lastActiveAt: new Date(last).toISOString(), joinedAt: c.createdAt };
     });
-    return { ...base, conversations, users };
+    return { ...base, conversations, users, routes: demoRoutes, sync: demoSync };
   }, [base, conversations, customers]);
+}
+
+/* ---------- Facade: same API in both modes; every action is async so pages can show server errors ---------- */
+export type AdminStore = typeof liveAdminStore;
+function asyncify(api: Record<string, unknown>): AdminStore {
+  return Object.fromEntries(Object.entries(api).map(([key, fn]) => [key, typeof fn === 'function'
+    ? (...args: unknown[]) => { try { return Promise.resolve((fn as (...a: unknown[]) => unknown).apply(api, args)); } catch (error) { return Promise.reject(error); } }
+    : fn])) as unknown as AdminStore;
+}
+export const adminStore: AdminStore = DEMO_MODE ? asyncify(demoStore as unknown as Record<string, unknown>) : liveAdminStore;
+/** Demo store internals for tests/reset tooling. */
+export const demoAdminStore = demoStore;
+export const useAdminState: () => AdminView = DEMO_MODE ? useDemoAdminState : useLiveAdminState;
+/** User-facing message for a failed admin action (validation or server). */
+export function actionMessage(error: unknown, fallback: string): string {
+  return error instanceof ValidationError || error instanceof LiveActionError ? error.message : fallback;
 }

@@ -30,3 +30,7 @@ Desktop.ini
 *.pfx
 credentials.json
 service-account*.json
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/

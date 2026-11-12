@@ -38,7 +38,7 @@ export function AddressDetailsForm({ field, initial, other, onChangePlace, onCon
     <div className="location-scroll">
       <div className="selected-place">
         <span className={`location-symbol ${isOrigin ? '' : 'destination'}`}><Icon name={isOrigin ? 'map' : 'flag'} size={21}/></span>
-        <div><strong>{place.name || text('Your custom location')}</strong><span>{place.source === 'demo' ? t("Demo location · Sample address") : t("Custom address · Not geocoded")}</span></div>
+        <div><strong>{place.name || text('Your custom location')}</strong><span>{place.source === 'demo' || (place.source === 'remote' && place.provenance !== 'verified-source') ? t("Demo location · Sample address") : place.source === 'remote' ? text('SakayWise place directory') : t("Custom address · Not geocoded")}</span></div>
       </div>
       <button type="button" className="change-place" onClick={onChangePlace}>{t("Change location")}{' '}<Icon name="arrow" size={15}/></button>
       {place.source === 'manual' && <div className="address-input">
@@ -48,11 +48,11 @@ export function AddressDetailsForm({ field, initial, other, onChangePlace, onCon
       </div>}
       <div className="address-input">
         <label htmlFor="main-address">{t("Main address")}{' '}<span>{t("(required)")}</span></label>
-        <input ref={addressRef} id="main-address" required maxLength={240} autoComplete="off" readOnly={place.source === 'demo'}
+        <input ref={addressRef} id="main-address" required maxLength={240} autoComplete="off" readOnly={place.source !== 'manual'}
           value={place.formattedAddress} placeholder={t("Street, barangay, city or municipality")}
           aria-invalid={!!error || !!duplicate} aria-describedby={duplicate ? 'location-duplicate' : error ? 'address-error' : 'main-address-help'}
           onChange={event => { setPlace(previous => ({ ...previous, formattedAddress: event.target.value })); setError(''); }}/>
-        <p className="input-hint" id="main-address-help">{place.source === 'demo' ? t("To choose another main address, tap Change location.") : t("Saved for your reference. No route, fare, or GPS estimate is generated.")}</p>
+        <p className="input-hint" id="main-address-help">{place.source !== 'manual' ? t("To choose another main address, tap Change location.") : t("Saved for your reference. No route, fare, or GPS estimate is generated.")}</p>
       </div>
       {duplicate && <p className="location-validation" role="alert" id="location-duplicate"><Icon name="warning" size={17}/>{t("Origin and destination must be different places. Choose another location.")}</p>}
       {error && <p className="location-validation" role="alert" id="address-error">{text(error)}</p>}

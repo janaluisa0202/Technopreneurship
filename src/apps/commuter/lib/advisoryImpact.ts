@@ -1,7 +1,7 @@
 import type { RouteItinerary, TransportSegment } from '../types/route';
 import type { AdvisoryRouteImpact, AdvisoryTripContext, RoadAdvisory } from '../types/roadwatch';
 import { advisoryState, canApplyOperationalEffect, validatedAdvisories } from './roadwatchService';
-import { transportNetwork } from '../services/demoCatalog';
+import { transportNetwork } from '../services/catalog';
 
 export function advisoryMatchesSegment(advisory:RoadAdvisory,segment:TransportSegment):boolean {
   const serviceId=segment.serviceId || transportNetwork.segments.find(item=>item.id===segment.id)?.serviceId;

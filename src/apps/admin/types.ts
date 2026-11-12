@@ -5,7 +5,7 @@ import type { QueueLevel } from '../commuter/types';
 
 export type { SupportCategory, AdvisoryCategory, AdvisorySeverity, QueueLevel };
 
-export interface AdminAccount { id: string; name: string; email: string; role: 'owner' | 'moderator'; }
+export interface AdminAccount { id: string; name: string; email: string; role: 'owner' | 'moderator'; /** Live mode: server role names. */ roles?: string[]; }
 
 /* Promos */
 export type PromoType = 'student' | 'route-discount' | 'partner' | 'seasonal';
@@ -26,6 +26,8 @@ export interface Incident {
   id: string; title: string; description: string; category: AdvisoryCategory; severity: AdvisorySeverity;
   status: IncidentStatus; areaName: string; suggestedAction: string; startsAt: string; endsAt: string;
   postedAt: string; updatedAt: string; postedBy: string;
+  /** Live mode: advisory source ('operator' = posted here, 'demo' = simulated seed, 'official' = agency feed). */
+  sourceType?: string; published?: boolean;
 }
 export type IncidentDraft = Omit<Incident, 'id' | 'postedAt' | 'updatedAt' | 'postedBy'>;
 
@@ -34,9 +36,11 @@ export type Audience = 'one' | 'all' | 'route';
 export type MessagePurpose = 'announcement' | 'advisory' | 'promo' | 'general';
 export interface DirectMessage {
   id: string; audience: Audience; recipientId?: string; recipientLabel: string; purpose: MessagePurpose;
+  /** Live mode route targeting (popular journey place ids). */
+  routeKey?: string;
   subject: string; body: string; promoId?: string; sentAt: string; sentBy: string;
   /** 'sent' = placed in the customer's Help & Support thread; 'saved-demo' = recorded only (needs the backend). */
-  delivery: 'saved-demo' | 'queued' | 'sent';
+  delivery: 'saved-demo' | 'queued' | 'sent' | 'broadcast';
 }
 
 /* Queue reports */
@@ -59,6 +63,8 @@ export type AnnouncementDraft = Pick<Announcement, 'title' | 'body' | 'channel' 
 export interface AppUser {
   id: string; nickname: string; email?: string; kind: 'guest' | 'account';
   lastActiveAt: string; joinedAt: string;
+  /** Live mode: server-side count (all conversations, not only the loaded page). */
+  conversationCount?: number;
 }
 
 /* Activity */
@@ -72,4 +78,14 @@ export interface AdminState {
   queueReports: AdminQueueReport[]; announcements: Announcement[]; activity: ActivityEntry[];
 }
 /** What pages read: the stored state plus the shared conversations and customer accounts. */
-export interface AdminView extends AdminState { conversations: Conversation[]; users: AppUser[]; }
+export interface RouteOption { key: string; label: string; originId?: string; destinationId?: string; }
+export interface SyncState {
+  mode: 'demo' | 'live';
+  status: 'loading' | 'ready' | 'error';
+  error?: string;
+  loadedAt?: string;
+  /** Live: the signed-in admin's role does not include reading the audit log. */
+  activityRestricted?: boolean;
+  refresh: () => void;
+}
+export interface AdminView extends AdminState { conversations: Conversation[]; users: AppUser[]; routes: RouteOption[]; sync: SyncState; }

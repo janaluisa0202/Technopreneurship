@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Icon } from '../components/Icon';
 import { Chips, ConfirmDialog, EmptyState, Field, Modal, PageHeader, Pill, SearchBox, useDebounced, useNow, useToast } from '../components/ui';
+import { run } from '../lib/actions';
 import { adminStore, useAdminState } from '../services/store';
 import { fromLocalInput, fullDate, timeAgo, toLocalInput } from '../lib/format';
 import { incidentCategoryLabels, severityLabels } from '../lib/labels';
@@ -45,7 +46,7 @@ export function Incidents() {
           {rows.map(i => (
             <li key={i.id} className={`incident-card sev-${i.severity}${i.status === 'resolved' ? ' is-resolved' : ''}`}>
               <div className="incident-top">
-                <div className="incident-tags"><Pill tone={sevTone[i.severity]}>{severityLabels[i.severity]}</Pill><Pill tone={statTone[i.status]}>{i.status}</Pill><span className="tag-text">{incidentCategoryLabels[i.category]}</span></div>
+                <div className="incident-tags"><Pill tone={sevTone[i.severity]}>{severityLabels[i.severity]}</Pill><Pill tone={statTone[i.status]}>{i.status}</Pill><span className="tag-text">{incidentCategoryLabels[i.category]}</span>{i.sourceType === 'demo' && <Pill tone="neutral">Simulated (demo data)</Pill>}{i.sourceType === 'official' && <Pill tone="blue">Agency source</Pill>}{i.published === false && <Pill tone="neutral">Not published</Pill>}</div>
                 <small>Posted {timeAgo(i.postedAt, now)} by {i.postedBy}</small>
               </div>
               <h2>{i.title}</h2>
@@ -57,8 +58,8 @@ export function Incidents() {
               </dl>
               <div className="card-actions">
                 {i.status !== 'resolved'
-                  ? <button type="button" className="btn small ghost" onClick={() => { adminStore.setIncidentStatus(i.id, 'resolved'); toast('Marked resolved.'); }}><Icon name="check" size={16} />Mark resolved</button>
-                  : <button type="button" className="btn small ghost" onClick={() => { adminStore.setIncidentStatus(i.id, 'active'); toast('Advisory reactivated.'); }}>Reactivate</button>}
+                  ? <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.setIncidentStatus(i.id, 'resolved'), 'Marked resolved.'); }}><Icon name="check" size={16} />Mark resolved</button>
+                  : <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.setIncidentStatus(i.id, 'active'), 'Advisory reactivated.'); }}>Reactivate</button>}
                 <button type="button" className="btn small ghost" onClick={() => setEditing({ incident: i })}><Icon name="edit" size={16} />Edit</button>
                 <button type="button" className="btn small ghost danger-text" onClick={() => setDeleting(i)}><Icon name="trash" size={16} />Remove</button>
               </div>
@@ -67,7 +68,7 @@ export function Incidents() {
         </ul>
       )}
       {editing && <IncidentForm incident={editing.incident} onClose={() => setEditing(null)} />}
-      {deleting && <ConfirmDialog danger title="Remove advisory?" message={<>“{deleting.title}” will be deleted. Resolve it instead if you want to keep a record.</>} confirmLabel="Remove advisory" onCancel={() => setDeleting(null)} onConfirm={() => { adminStore.deleteIncident(deleting.id); setDeleting(null); toast('Advisory removed.'); }} />}
+      {deleting && <ConfirmDialog danger title="Remove advisory?" message={<>“{deleting.title}” will be deleted. Resolve it instead if you want to keep a record.</>} confirmLabel="Remove advisory" onCancel={() => setDeleting(null)} onConfirm={() => { setDeleting(null); void run(toast, adminStore.deleteIncident(deleting.id), 'Advisory removed.'); }} />}
     </>
   );
 }
@@ -76,6 +77,7 @@ function IncidentForm({ incident, onClose }: { incident?: Incident; onClose: () 
   const toast = useToast();
   const [d, setD] = useState<IncidentDraft>(() => incident ? { title: incident.title, description: incident.description, category: incident.category, severity: incident.severity, status: incident.status, areaName: incident.areaName, suggestedAction: incident.suggestedAction, startsAt: incident.startsAt, endsAt: incident.endsAt } : blank());
   const [errors, setErrors] = useState<Partial<Record<keyof IncidentDraft, string>>>({});
+  const [saving, setSaving] = useState(false);
   const set = <K extends keyof IncidentDraft>(k: K, v: IncidentDraft[K]) => setD(x => ({ ...x, [k]: v }));
 
   function submit(event: FormEvent) {
@@ -88,12 +90,12 @@ function IncidentForm({ incident, onClose }: { incident?: Incident; onClose: () 
     if (!d.endsAt || !Number.isFinite(Date.parse(d.endsAt))) e.endsAt = 'Choose an end time.'; else if (Date.parse(d.endsAt) < Date.parse(d.startsAt)) e.endsAt = 'End time must be after the start time.';
     setErrors(e);
     if (Object.keys(e).length) return;
-    adminStore.saveIncident({ ...d, title: d.title.trim(), description: d.description.trim(), areaName: d.areaName.trim(), suggestedAction: d.suggestedAction.trim() }, incident?.id);
-    toast(incident ? 'Advisory updated.' : 'Advisory posted.');
-    onClose();
+    setSaving(true);
+    void run(toast, adminStore.saveIncident({ ...d, title: d.title.trim(), description: d.description.trim(), areaName: d.areaName.trim(), suggestedAction: d.suggestedAction.trim() }, incident?.id),
+      incident ? 'Advisory updated.' : 'Advisory posted.', 'Could not save the advisory.').then(ok => { setSaving(false); if (ok) onClose(); });
   }
   return (
-    <Modal title={incident ? 'Edit advisory' : 'New advisory'} onClose={onClose} wide footer={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="submit" form="incident-form" className="btn primary">{incident ? 'Save changes' : 'Post advisory'}</button></>}>
+    <Modal title={incident ? 'Edit advisory' : 'New advisory'} onClose={onClose} wide footer={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="submit" form="incident-form" className="btn primary" disabled={saving}>{incident ? 'Save changes' : 'Post advisory'}</button></>}>
       <form id="incident-form" onSubmit={submit} noValidate className="form-grid">
         <Field label="Incident title" htmlFor="inc-title" error={errors.title}><input id="inc-title" data-autofocus value={d.title} onChange={e => set('title', e.target.value)} aria-invalid={!!errors.title} /></Field>
         <Field label="Category" htmlFor="inc-cat"><select id="inc-cat" value={d.category} onChange={e => set('category', e.target.value as AdvisoryCategory)}>{Object.entries(incidentCategoryLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>

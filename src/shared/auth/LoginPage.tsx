@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { authService, DEMO_ADMIN_PASSWORD, DEMO_CUSTOMER_PASSWORD, DEMO_MODE } from './authService';
-import type { AuthUser } from './types';
+import type { AuthResult, AuthUser } from './types';
 import './auth.css';
 
-type Mode = 'signin' | 'register' | 'forgot' | 'sent';
+type Mode = 'signin' | 'register' | 'forgot' | 'sent' | 'confirm' | 'recovery';
 
 /** One sign-in page for everyone. The caller decides where each role goes (see AppRoot). */
-export function LoginPage({ onSignedIn }: { onSignedIn: (user: AuthUser) => void }) {
-  const [mode, setMode] = useState<Mode>('signin');
+export function LoginPage({ onSignedIn, initialMode = 'signin' }: { onSignedIn: (user: AuthUser) => void; initialMode?: Mode }) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,12 +18,24 @@ export function LoginPage({ onSignedIn }: { onSignedIn: (user: AuthUser) => void
 
   const go = (next: Mode) => { setMode(next); setError(''); setPassword(''); setShow(false); };
 
-  async function run(action: () => Promise<{ ok: true; user: AuthUser } | { ok: false; error: string }>) {
+  async function run(action: () => Promise<AuthResult>) {
     if (busy) return;
     setBusy(true); setError('');
     const result = await action();
     setBusy(false);
-    if (result.ok) onSignedIn(result.user); else { setError(result.error); setPassword(''); }
+    if (result.ok) onSignedIn(result.user);
+    else if (result.confirmEmail) { setPassword(''); setMode('confirm'); }
+    else { setError(result.error); setPassword(''); }
+  }
+  async function setNewPassword(e: FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setError('');
+    const result = await authService.updatePassword(password);
+    setBusy(false);
+    if (!result.ok) { setError(result.error ?? 'Something went wrong.'); return; }
+    const user = authService.restoreSession();
+    if (user) onSignedIn(user); else go('signin');
   }
   const signIn = (e: FormEvent) => { e.preventDefault(); void run(() => authService.login(email, password, keep)); };
   const register = (e: FormEvent) => { e.preventDefault(); void run(() => authService.register({ name, email, password })); };
@@ -105,6 +117,24 @@ export function LoginPage({ onSignedIn }: { onSignedIn: (user: AuthUser) => void
             {errorBox}
             <button type="submit" className="auth-btn" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'}</button>
             <p className="auth-switch"><button type="button" className="auth-link" onClick={() => go('signin')}>Back to sign in</button></p>
+          </form>
+        )}
+
+        {mode === 'confirm' && (
+          <div>
+            <h1>Confirm your email</h1>
+            <p className="auth-sub">We sent a confirmation link to <strong>{email.trim()}</strong>. Open it, then sign in.</p>
+            <button type="button" className="auth-btn" onClick={() => go('signin')}>Back to sign in</button>
+          </div>
+        )}
+
+        {mode === 'recovery' && (
+          <form onSubmit={setNewPassword} noValidate>
+            <h1>Set a new password</h1>
+            <p className="auth-sub">Choose a new password for your SakayWise account.</p>
+            {passwordField('new-password', 'new-password', 'At least 8 characters.')}
+            {errorBox}
+            <button type="submit" className="auth-btn" disabled={busy}>{busy ? 'Saving…' : 'Save new password'}</button>
           </form>
         )}
 

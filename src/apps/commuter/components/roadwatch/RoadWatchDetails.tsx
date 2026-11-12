@@ -1,7 +1,7 @@
 import { useI18n } from '../../../../shared/i18n';
 import { Icon } from '../Icon';
 import { RouteMetrics } from '../RouteDetails';
-import { transportNetwork } from '../../services/demoCatalog';
+import { transportNetwork } from '../../services/catalog';
 import { advisorySourceLabel, advisoryState, categoryLabels, formatAdvisoryTime, trustedSourceUrl } from '../../lib/roadwatchService';
 import { NO_ALTERNATIVE_MESSAGE } from './RoadWatchBanner';
 import type { AdvisoryTripContext, RoadAdvisory } from '../../types/roadwatch';
