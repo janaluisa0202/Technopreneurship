@@ -17,6 +17,7 @@ interface Props {
   alertCount?: number;
   onSettings:()=>void;
   onSupport:()=>void;
+  supportUnread?:number;
 }
 
 const tabs = [
@@ -26,7 +27,7 @@ const tabs = [
   {id:'alerts',label:'Para Alerts',icon:'bell'},
 ] as const;
 
-export function MobileShell({tab,onTab,children,overlay,toast,notice,overlayOpen,savedCount,onSaved,alertCount=0,onSettings,onSupport}:Props) {
+export function MobileShell({tab,onTab,children,overlay,toast,notice,overlayOpen,savedCount,onSaved,alertCount=0,onSettings,onSupport,supportUnread=0}:Props) {
   const {t,text}=useI18n();
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,7 @@ export function MobileShell({tab,onTab,children,overlay,toast,notice,overlayOpen
         </header>
         <div className="view" key={tab} tabIndex={0} role="region"
           aria-label={text(`${tabs.find(item=>item.id===tab)?.label} content`)}>{notice && <p className="queue-warning" role="status">{text(notice)}</p>}{children}</div>
-        {!overlayOpen && <div className="support-dock"><button type="button" className="support-fab" aria-label={t("Help & Support")} onClick={onSupport}><Icon name="message" size={22}/></button></div>}
+        {!overlayOpen && <div className="support-dock"><button type="button" className="support-fab" aria-label={supportUnread>0?`${t("Help & Support")} (${supportUnread})`:t("Help & Support")} onClick={onSupport}><Icon name="message" size={22}/>{supportUnread>0 && <span className="support-badge" aria-hidden="true">{Math.min(supportUnread,9)}</span>}</button></div>}
         <nav className="nav" aria-label={t("Commuter navigation")}>
           {tabs.map(item => <button key={item.id} type="button" className={`nav-button ${tab === item.id ? 'active' : ''}`}
             aria-label={text(item.id==='alerts' && alertCount>0?`${item.label}, ${alertCount} matching advisories`:item.label)}

@@ -819,6 +819,23 @@ export const en = {
   "Retry advisory data": "Retry advisory data",
   "Retry route search": "Retry route search",
   "Unable to save the queue report. Please retry.": "Unable to save the queue report. Please retry.",
-  "Changes are available for this session only. Browser storage is unavailable.": "Changes are available for this session only. Browser storage is unavailable."
+  "Changes are available for this session only. Browser storage is unavailable.": "Changes are available for this session only. Browser storage is unavailable.",
+  "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.": "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.",
+  "Your conversations": "Your conversations",
+  "No messages yet": "No messages yet",
+  "Write your concern below and the support team will reply here.": "Write your concern below and the support team will reply here.",
+  "Conversation with support": "Conversation with support",
+  "Sent to support": "Sent to support",
+  "Send message": "Send message",
+  "Sending...": "Sending...",
+  "Your name and email are shared only with the support team.": "Your name and email are shared only with the support team.",
+  "You can ask for help without sharing a precise location. ": "You can ask for help without sharing a precise location. ",
+  "Do I need an account to use SakayWise?": "Do I need an account to use SakayWise?",
+  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.",
+  "Find answers or message the SakayWise support team.": "Find answers or message the SakayWise support team.",
+  "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.",
+  "Account": "Account",
+  "Signed in as": "Signed in as",
+  "Sign out": "Sign out"
 } as const;
 export type TranslationKey=keyof typeof en;

@@ -819,5 +819,22 @@ export const fil = {
   "Retry advisory data": "Subukang muli ang datos ng abiso",
   "Retry route search": "Ulitin ang paghahanap ng ruta",
   "Unable to save the queue report. Please retry.": "Hindi ma-save ang ulat sa pila. Subukang muli.",
-  "Changes are available for this session only. Browser storage is unavailable.": "Sa kasalukuyang sesyon lang available ang mga pagbabago. Hindi available ang imbakan ng browser."
+  "Changes are available for this session only. Browser storage is unavailable.": "Sa kasalukuyang sesyon lang available ang mga pagbabago. Hindi available ang imbakan ng browser.",
+  "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.": "Demo chat — mapupunta ang mga mensahe mo sa SakayWise admin console sa browser na ito. Dito lalabas ang mga sagot.",
+  "Your conversations": "Mga usapan mo",
+  "No messages yet": "Wala pang mensahe",
+  "Write your concern below and the support team will reply here.": "Isulat ang iyong concern sa ibaba at sasagot dito ang support team.",
+  "Conversation with support": "Usapan sa support",
+  "Sent to support": "Naipadala sa support",
+  "Send message": "Ipadala ang mensahe",
+  "Sending...": "Ipinapadala...",
+  "Your name and email are shared only with the support team.": "Ang pangalan at email mo ay ibabahagi lang sa support team.",
+  "You can ask for help without sharing a precise location. ": "Maaari kang humingi ng tulong nang hindi ibinabahagi ang eksaktong lokasyon. ",
+  "Do I need an account to use SakayWise?": "Kailangan ko ba ng account para magamit ang SakayWise?",
+  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Oo. Mag-sign in gamit ang SakayWise account mo para makasagot ang support team. Nananatili sa browser na ito ang mga kagustuhan, address, naka-save na gabay, at ulat.",
+  "Find answers or message the SakayWise support team.": "Humanap ng sagot o magpadala ng mensahe sa SakayWise support team.",
+  "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype bersyon 0.1.0 · Walang live GPS, opisyal na transit feed, o background push notification. Ginagamit ang account mo para sa mga mensahe sa support.",
+  "Account": "Account",
+  "Signed in as": "Naka-sign in bilang",
+  "Sign out": "Mag-sign out"
 } satisfies Record<TranslationKey,string>;
