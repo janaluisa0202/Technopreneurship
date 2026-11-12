@@ -2,6 +2,8 @@
 
 Branch `feature/backend-integration`. Start with [BACKEND_ARCHITECTURE_ASSESSMENT.md](BACKEND_ARCHITECTURE_ASSESSMENT.md) for the "why"; this file is the "how".
 
+> **Update 2026-11-12:** commuters now sign in with Supabase accounts and the admin website is connected. Read [ADMIN_SUPABASE_INTEGRATION.md](ADMIN_SUPABASE_INTEGRATION.md) for the current setup (email auth instead of anonymous guests, admin bootstrap, new migration).
+
 **Status:** schema, RLS, RPCs, seed, typed frontend adapters and tests are done and verified locally. **No hosted Supabase project has been created or connected yet** — that needs a team account (steps below). Demo mode remains the default and behaves exactly as before.
 
 ## Architecture in one picture

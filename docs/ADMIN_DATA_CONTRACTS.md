@@ -1,5 +1,7 @@
 # Admin dashboard data contracts
 
+> The admin website now uses these contracts through `src/apps/admin/services/liveStore.ts`. Additions from the 2026-11-12 migration: `profiles`, `admin_list_users()`, `promos`, `announcements`, `admin_messages` + `admin_send_message()`, `support_set_spam()`, `support_mark_unread()`, `admin_log_event()`, queue status `spam`, advisory source `operator`. Role capabilities are listed in [ADMIN_SUPABASE_INTEGRATION.md](ADMIN_SUPABASE_INTEGRATION.md#role-capabilities-server-enforced).
+
 For the future dashboard in `src/apps/admin/`. Every privileged operation is enforced in Postgres (RLS + `security definer` RPCs). The dashboard signs in with Supabase Auth (email/password or OAuth — **not** anonymous) using the same publishable key; it never needs a service-role key.
 
 ## Roles

@@ -39,6 +39,14 @@ This is an engineering summary, **not legal advice or a compliance claim**. Comp
 - **Data subject requests:** a user's conversations/messages are found by `owner_id`; deleting the `auth.users` row removes them. Guests who clear browser storage lose access to their guest session — tell users this in the privacy notice.
 - **Security of processing:** RLS everywhere, least privilege, server-side validation, TLS (Supabase), secrets outside the repo.
 
+## Admin integration additions (2026-11-12)
+
+- Commuters now sign in with email accounts. `profiles` stores display name, email and last-seen time; only the owner and staff can read a row. Staff need it to answer support requests.
+- The admin site decides nothing itself: `my_admin_roles()` is presentation only, and each write is re-checked by RLS/RPCs. A customer JWT was verified to be rejected on `promos` inserts and `admin_list_users()`, and a support_staff JWT on incident updates and the audit log.
+- Broadcasts (`admin_messages` with audience `all`/`route`) are readable by every signed-in user, so never put personal data in them. One-to-one messages are visible only to their recipient (in the support thread) and staff.
+- Route targeting happens on the device; the server stores no commuter routes or location history.
+- Activity entries for support actions record the action and subject, never message bodies.
+
 ## Known residual risks
 
 - Anonymous sessions make Sybil attacks cheaper; one-vote-per-reporter and moderation reduce, but do not eliminate, coordinated false queue reports. Confidence labels and the "not verified" wording must stay.

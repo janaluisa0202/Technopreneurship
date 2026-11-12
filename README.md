@@ -2,7 +2,7 @@
 
 SakayWise is a mobile-first Philippine commuter **academic prototype**, built with React, TypeScript and Vite. It compares explicitly mapped sample journeys, passenger-specific sample fares, local queue reports and simulated road advisories. Commuters can use it without an account.
 
-**This is not live travel guidance.** The app runs in **demo mode** by default (bundled illustrative data, no network). An optional **live mode** connects to a Supabase backend (PostgreSQL + Auth + Realtime) for the transport network, fares, community queue reports, RoadWatch advisories and commuter-to-admin support messaging — see [docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md). No official fare feed, live traffic/GPS, push notifications or geographic map is connected, and the provided seed data is illustrative.
+**This is not live travel guidance.** The app runs in **demo mode** by default (bundled illustrative data, no network). An optional **live mode** connects to a Supabase backend (PostgreSQL + Auth + Realtime) for the transport network, fares, community queue reports, RoadWatch advisories and commuter-to-admin support messaging — see [docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md). In live mode the shared login uses Supabase Auth, and the **admin website** (`/admin.html`) manages the same records the commuter app uses: support, queue moderation, incidents, promos, announcements, broadcasts, users and the activity log. See [docs/ADMIN_SUPABASE_INTEGRATION.md](docs/ADMIN_SUPABASE_INTEGRATION.md). No official fare feed, live traffic/GPS, push notifications or geographic map is connected, and the provided seed data is illustrative.
 
 ## Install and run
 
