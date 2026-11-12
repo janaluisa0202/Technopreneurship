@@ -870,6 +870,18 @@ export const en = {
   "This conversation was closed by support. Your next message starts a new conversation.": "This conversation was closed by support. Your next message starts a new conversation.",
   "Too many messages in a short time. Please wait a minute, then try again. Your draft is kept.": "Too many messages in a short time. Please wait a minute, then try again. Your draft is kept.",
   "Messaging support is not available right now. Your draft is kept on this device.": "Messaging support is not available right now. Your draft is kept on this device.",
-  "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.": "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept."
+  "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.": "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.",
+  "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.": "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.",
+  "Write your concern below and the support team will reply here.": "Write your concern below and the support team will reply here.",
+  "Conversation with support": "Conversation with support",
+  "Your name and email are shared only with the support team.": "Your name and email are shared only with the support team.",
+  "You can ask for help without sharing a precise location. ": "You can ask for help without sharing a precise location. ",
+  "Do I need an account to use SakayWise?": "Do I need an account to use SakayWise?",
+  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.",
+  "Find answers or message the SakayWise support team.": "Find answers or message the SakayWise support team.",
+  "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.",
+  "Account": "Account",
+  "Signed in as": "Signed in as",
+  "Sign out": "Sign out"
 } as const;
 export type TranslationKey=keyof typeof en;

@@ -853,7 +853,7 @@ export const fil = {
   "Queue reporting is not available right now. Please try again later.": "Hindi available ang pag-uulat ng pila ngayon. Subukang muli mamaya.",
   "Unable to send the queue report. Please retry.": "Hindi maipadala ang ulat sa pila. Subukang muli.",
   "Messages are sent to the SakayWise support team. Replies appear here when an administrator responds. Do not share sensitive personal information.": "Ipinapadala ang mga mensahe sa support team ng SakayWise. Lalabas dito ang mga sagot kapag tumugon ang administrator. Huwag magbahagi ng sensitibong personal na impormasyon.",
-  "Your conversations": "Iyong mga usapan",
+  "Your conversations": "Mga usapan mo",
   "You can ask for help without a name, email, or precise location. Optional details are shared only with the SakayWise support team.": "Maaari kang humingi ng tulong nang walang pangalan, email, o eksaktong lokasyon. Ibinabahagi lang ang opsyonal na detalye sa support team ng SakayWise.",
   "No messages yet": "Wala pang mensahe",
   "Write your concern below. A SakayWise support administrator will reply in this conversation.": "Isulat ang iyong alalahanin sa ibaba. Sasagot ang support administrator ng SakayWise sa usapang ito.",
@@ -870,5 +870,17 @@ export const fil = {
   "This conversation was closed by support. Your next message starts a new conversation.": "Isinara ng support ang usapang ito. Magsisimula ng bagong usapan ang susunod mong mensahe.",
   "Too many messages in a short time. Please wait a minute, then try again. Your draft is kept.": "Masyadong maraming mensahe sa maikling oras. Maghintay ng isang minuto, saka subukang muli. Naka-save ang iyong draft.",
   "Messaging support is not available right now. Your draft is kept on this device.": "Hindi available ang pagmemensahe sa support ngayon. Naka-save ang iyong draft sa device na ito.",
-  "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.": "Hindi maabot ang support ng SakayWise. Tingnan ang iyong koneksyon at subukang muli. Naka-save ang iyong draft."
+  "Unable to reach SakayWise support. Check your connection and try again. Your draft is kept.": "Hindi maabot ang support ng SakayWise. Tingnan ang iyong koneksyon at subukang muli. Naka-save ang iyong draft.",
+  "Demo chat — your messages go to the SakayWise admin console running in this browser. Replies appear here.": "Demo chat — mapupunta ang mga mensahe mo sa SakayWise admin console sa browser na ito. Dito lalabas ang mga sagot.",
+  "Write your concern below and the support team will reply here.": "Isulat ang iyong concern sa ibaba at sasagot dito ang support team.",
+  "Conversation with support": "Usapan sa support",
+  "Your name and email are shared only with the support team.": "Ang pangalan at email mo ay ibabahagi lang sa support team.",
+  "You can ask for help without sharing a precise location. ": "Maaari kang humingi ng tulong nang hindi ibinabahagi ang eksaktong lokasyon. ",
+  "Do I need an account to use SakayWise?": "Kailangan ko ba ng account para magamit ang SakayWise?",
+  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Oo. Mag-sign in gamit ang SakayWise account mo para makasagot ang support team. Nananatili sa browser na ito ang mga kagustuhan, address, naka-save na gabay, at ulat.",
+  "Find answers or message the SakayWise support team.": "Humanap ng sagot o magpadala ng mensahe sa SakayWise support team.",
+  "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype bersyon 0.1.0 · Walang live GPS, opisyal na transit feed, o background push notification. Ginagamit ang account mo para sa mga mensahe sa support.",
+  "Account": "Account",
+  "Signed in as": "Naka-sign in bilang",
+  "Sign out": "Mag-sign out"
 } satisfies Record<TranslationKey,string>;

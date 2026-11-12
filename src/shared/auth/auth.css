@@ -1,0 +1,42 @@
+/* Login page + small commuter additions. Uses the commuter palette variables from styles.css. */
+.auth-page { position:fixed; inset:0; z-index:5; overflow-y:auto; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); background:var(--paper); color:var(--ink); font-family:inherit; }
+.auth-brand { background:var(--yellow); color:var(--brand-navy, #111a30); display:flex; flex-direction:column; justify-content:center; gap:14px; padding:64px; }
+.auth-wordmark { font-weight:900; line-height:1.1; letter-spacing:-1.2px; color:var(--brand-blue, #233f93); font-size:1.75rem; }
+.auth-wordmark span { color:var(--brand-red, #e5223c); }
+.auth-wordmark.big { font-size:4rem; letter-spacing:-3px; }
+.auth-wordmark.small { display:none; margin-bottom:24px; }
+.auth-tag { font-size:1.125rem; font-weight:800; margin:0; }
+.auth-copy { max-width:38ch; font-size:1.0625rem; line-height:1.6; font-weight:550; margin:0; }
+.auth-card { display:flex; flex-direction:column; justify-content:center; width:min(440px,100%); margin:0 auto; padding:40px 28px; box-sizing:border-box; }
+.auth-card h1 { font-size:1.75rem; letter-spacing:-.8px; color:var(--heading); margin:0 0 6px; }
+.auth-sub { color:var(--muted); margin:0 0 22px; line-height:1.5; }
+.auth-field { display:grid; gap:6px; margin-bottom:14px; }
+.auth-field label { font-size:.75rem; font-weight:750; color:var(--muted); }
+.auth-field small { color:var(--muted); font-size:.75rem; }
+.auth-field input { width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface-subtle); color:var(--ink); font:inherit; box-sizing:border-box; }
+.auth-field input:focus-visible, .auth-btn:focus-visible, .auth-link:focus-visible, .auth-password button:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
+.auth-password { position:relative; }
+.auth-password input { padding-right:68px; }
+.auth-password button { position:absolute; right:4px; top:4px; min-height:38px; padding:0 12px; border:0; border-radius:9px; background:transparent; color:var(--blue); font-weight:750; font-size:.8125rem; cursor:pointer; }
+.auth-error { margin:0 0 14px; padding:10px 12px; border-radius:10px; background:var(--surface-danger); color:var(--danger-text); font-size:.8125rem; font-weight:650; }
+.auth-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+.auth-check { display:inline-flex; align-items:center; gap:8px; font-size:.8125rem; font-weight:600; }
+.auth-check input { width:18px; height:18px; min-height:0; accent-color:var(--accent-solid); }
+.auth-btn { width:100%; min-height:48px; border:0; border-radius:13px; background:var(--accent-solid); color:var(--on-accent); font:inherit; font-weight:800; cursor:pointer; }
+.auth-btn:disabled { opacity:.6; cursor:not-allowed; }
+.auth-link { border:0; background:none; padding:4px 0; color:var(--blue); font:inherit; font-weight:700; font-size:.8125rem; text-decoration:underline; text-underline-offset:3px; cursor:pointer; min-height:0; }
+.auth-switch { margin:16px 0 0; text-align:center; font-size:.875rem; color:var(--muted); }
+.auth-demo { margin-top:22px; padding:14px; border-radius:12px; background:var(--surface-warning); color:var(--warning-text); font-size:.8125rem; line-height:1.55; }
+.auth-demo p { margin:4px 0 0; overflow-wrap:anywhere; }
+.auth-demo code { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:1px 6px; color:var(--ink); }
+.auth-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.auth-note { position:fixed; inset:0; display:grid; place-items:center; background:var(--paper); color:var(--ink); font-weight:700; }
+@media (max-width:860px) {
+  .auth-page { grid-template-columns:1fr; }
+  .auth-brand { display:none; }
+  .auth-wordmark.small { display:block; }
+}
+
+/* Commuter: unread-reply badge on the Help & Support button */
+.support-fab { position:relative; }
+.support-badge { position:absolute; top:-3px; right:-3px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:var(--red); color:#fff; font-size:.6875rem; font-weight:800; display:grid; place-items:center; border:2px solid var(--paper); box-sizing:content-box; }
