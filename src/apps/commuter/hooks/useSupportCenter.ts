@@ -105,6 +105,7 @@ export function useSupportCenter(service: SupportService = defaultSupportService
   const markRead = useCallback(async (id: string) => {
     try {
       await service.markConversationRead(id);
+      window.dispatchEvent(new Event('sakaywise:support-read'));
       const [thread, list] = await Promise.all([
         service.getConversationMessages(id),
         service.getConversationsForSession(),

@@ -26,7 +26,7 @@ import { QueuesPage } from './pages/QueuesPage';
 import { RoutesPage } from './pages/RoutesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SupportCenter } from './pages/SupportCenter';
-import { useCustomerUnread } from '../../shared/messaging/supportStore';
+import { useCommuterUpdates, useSupportUnread } from './hooks/useCommuterUpdates';
 import type { AuthUser } from '../../shared/auth/types';
 import { MapOverview } from './pages/MapOverview';
 import { Introduction } from './components/onboarding/Introduction';
@@ -52,9 +52,8 @@ const queueSubmitMessages:Record<string,string>={
 function userFacingError(message:string){const error=new Error(message);error.name='UserFacingError';return error;}
 export function CommuterApp({account,onSignOut}:{account:AuthUser;onSignOut:()=>void}) {
   const introduction=useIntroduction();
-  // The shared browser support store is demo-only. Live mode uses the Supabase support adapter instead.
-  const localSupportUnread=useCustomerUnread(account.id);
-  const supportUnread=isLiveCatalog()?0:localSupportUnread;
+  // Demo: shared browser support store. Live: unread support replies from Supabase read receipts.
+  const supportUnread=useSupportUnread(account.id);
   const [tab,setTab] = useState<Tab>('routes');
   // Live adapters exist only when CommuterDataGate installed a database snapshot.
   const [remote]=useState(()=>isLiveCatalog()?{queues:createRemoteQueueService(requireSupabaseClient()),roadwatch:createRemoteRoadWatchProvider(requireSupabaseClient())}:undefined);
@@ -91,6 +90,9 @@ export function CommuterApp({account,onSignOut}:{account:AuthUser;onSignOut:()=>
   const referenceIds=new Set(reference?.advisoryImpacts?.map(impact=>impact.advisoryId) || []);
   const alternative=availableAll.find(route=>referenceIds.size>0?!route.advisoryImpacts?.some(impact=>referenceIds.has(impact.advisoryId)):!route.advisoryImpacts?.length);
   const relevantIds=new Set(roadwatch.advisories.filter(item=>recommendations.baselineRoutes.some(route=>advisoryMatchesRoute(item,route))).map(item=>item.id));
+  // Route keys this commuter cares about, used only on the device to show matching route broadcasts.
+  const routeKeys=useMemo(()=>new Set([journey.from && journey.to?`${journey.from.place.id}:${journey.to.place.id}`:'',watchedTrip??'',...saved.map(item=>item.tripId)].filter(Boolean)),[journey,watchedTrip,saved]);
+  const updates=useCommuterUpdates(routeKeys);
   const personal=useMemo(()=>personalAdvisoryMatches(roadwatch.routingAdvisories,watchedTrip,saved,roadPreferences,passenger,reports,roadwatch.now),[roadwatch.routingAdvisories,watchedTrip,saved,roadPreferences,passenger,reports,roadwatch.now]);
   const contextFor=(id:string)=>{const advisory=roadwatch.advisories.find(item=>item.id===id);return advisory && roadwatch.dataStatus==='ready'?advisoryTripContext(advisory,recommendations.allRoutes,availableAll,roadwatch.now):{affected:[]};};
   const displaySheet = useMemo(()=>{
@@ -189,6 +191,6 @@ export function CommuterApp({account,onSignOut}:{account:AuthUser;onSignOut:()=>
     {tab==='routes' && <RoutesPage onRetry={recommendations.retry} roadwatch={{advisories:matchingAdvisories,dataStatus:roadwatch.dataStatus,reference,alternative}} onAdvisory={openAdvisory} onAlternative={()=>openAlternative()} onRoadWatch={()=>setTab('alerts')} from={journey.from} to={journey.to} passenger={passenger} onPassenger={setPassenger} priority={priority} onPriority={value=>{setPriority(value);setSelection(null);}} routes={visibleRoutes} selectedRoute={currentRoute} status={recommendations.status} change={recommendations.change} recent={recentLocations} saved={saved} watched={isWatched} onSwap={swapLocations} onClearLocation={field=>chooseLocation(field,null)} onMap={()=>setPanel('map')} onPickLocation={field=>{setToast('');setSheet({type:'location',field});}} onDestination={chooseDestination} onSample={chooseSample} onSelectRoute={route=>setSelection({key:selectionKey,id:route.id})} onDetails={route=>{setSelection({key:selectionKey,id:route.id});setSheet({type:'route',route});}} onSave={saveGuide} onFareGuard={()=>setTab('fares')} onWatch={watchRoute}/>}
     {tab==='fares' && <FareMatrixPage passenger={passenger} onPassenger={setPassenger} route={fareRoute}/>}
     {tab==='queues' && <QueuesPage reports={reports} now={recommendations.now} onReport={()=>setSheet({type:'report'})} live={remote?{noReport:liveQueues.noReport,status:liveQueues.status,onRetry:liveQueues.retry}:undefined}/>}
-    {tab==='alerts' && <AlertsPage onRetry={roadwatch.retry} advisories={roadwatch.advisories} now={roadwatch.now} dataStatus={roadwatch.dataStatus} latestUpdate={roadwatch.latestUpdate} sourceLabel={roadwatch.label} relevantIds={relevantIds} watchedIds={personal.watchedIds} savedIds={personal.savedIds} roadPreferences={roadPreferences} onRoadPreference={key=>{setRoadPreferences(previous=>({...previous,[key]:!previous[key]}));setToast('RoadWatch preference saved locally.');}} onAdvisory={openAdvisory} onWatch={watchRoute} canWatch={!!watchId} watchCurrent={isWatched} watchedTrip={watchedTrip} preferences={preferences} onToggle={togglePreference} onStopWatch={()=>{setWatchedTrip(null);setToast('Route watch removed.');}} onGoRoutes={()=>setTab('routes')}/>}
+    {tab==='alerts' && <AlertsPage onRetry={roadwatch.retry} advisories={roadwatch.advisories} now={roadwatch.now} dataStatus={roadwatch.dataStatus} latestUpdate={roadwatch.latestUpdate} sourceLabel={roadwatch.label} relevantIds={relevantIds} watchedIds={personal.watchedIds} savedIds={personal.savedIds} roadPreferences={roadPreferences} onRoadPreference={key=>{setRoadPreferences(previous=>({...previous,[key]:!previous[key]}));setToast('RoadWatch preference saved locally.');}} onAdvisory={openAdvisory} onWatch={watchRoute} canWatch={!!watchId} watchCurrent={isWatched} watchedTrip={watchedTrip} preferences={preferences} onToggle={togglePreference} onStopWatch={()=>{setWatchedTrip(null);setToast('Route watch removed.');}} onGoRoutes={()=>setTab('routes')} updates={updates}/>}
   </MobileShell>;
 }

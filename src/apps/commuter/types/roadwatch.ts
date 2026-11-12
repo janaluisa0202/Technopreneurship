@@ -12,7 +12,8 @@ export interface RoadAdvisory {
   category: AdvisoryCategory;
   severity: AdvisorySeverity;
   status: AdvisoryStatus;
-  sourceType: 'demo' | 'official' | 'community' | 'unknown';
+  /** 'operator' = posted by SakayWise staff in the admin console (not a government source). */
+  sourceType: 'demo' | 'official' | 'community' | 'operator' | 'unknown';
   sourceName: string;
   sourceUrl?: string;
   verificationStatus: 'simulated' | 'verified' | 'unverified';

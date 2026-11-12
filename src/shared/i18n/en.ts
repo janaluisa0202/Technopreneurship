@@ -882,6 +882,26 @@ export const en = {
   "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.",
   "Account": "Account",
   "Signed in as": "Signed in as",
-  "Sign out": "Sign out"
+  "Sign out": "Sign out",
+  "Updates": "Updates",
+  "PARA ALERTS · UPDATES": "PARA ALERTS · UPDATES",
+  "From the SakayWise team": "From the SakayWise team",
+  "Announcements, current promos and messages posted by SakayWise staff. Route messages appear when they match a journey you planned, watch, or saved.": "Announcements, current promos and messages posted by SakayWise staff. Route messages appear when they match a journey you planned, watch, or saved.",
+  "Demo: announcements, promos and messages saved in the admin console of this browser.": "Demo: announcements, promos and messages saved in the admin console of this browser.",
+  "Updates could not be refreshed. Showing the last loaded items.": "Updates could not be refreshed. Showing the last loaded items.",
+  "Loading updates…": "Loading updates…",
+  "No updates right now": "No updates right now",
+  "Announcements, promos and messages from SakayWise will appear here.": "Announcements, promos and messages from SakayWise will appear here.",
+  "For commuters on": "For commuters on",
+  "SakayWise advisory": "SakayWise advisory",
+  "Promo notice": "Promo notice",
+  "Announcement": "Announcement",
+  "Student fare promo": "Student fare promo",
+  "Route discount": "Route discount",
+  "Partner promo": "Partner promo",
+  "Seasonal promo": "Seasonal promo",
+  "Message from SakayWise": "Message from SakayWise",
+  "Route advisory": "Route advisory",
+  "Promo": "Promo"
 } as const;
 export type TranslationKey=keyof typeof en;

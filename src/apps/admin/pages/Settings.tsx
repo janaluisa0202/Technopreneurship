@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog, PageHeader, useToast } from '../components/ui';
+import { run } from '../lib/actions';
 import { adminStore } from '../services/store';
 import { DEMO_MODE } from '../../../shared/auth/authService';
 import type { Appearance } from '../theme';
@@ -15,7 +16,8 @@ export function Settings({ admin, appearance, onAppearance }: { admin: AdminAcco
       <PageHeader title="Settings" subtitle="Your account and how the admin site looks." />
       <div className="settings-grid">
         <section className="panel panel-pad"><h2 className="panel-title">Account</h2>
-          <dl className="detail-list"><div><dt>Name</dt><dd>{admin.name}</dd></div><div><dt>Email</dt><dd>{admin.email}</dd></div><div><dt>Role</dt><dd>{admin.role === 'owner' ? 'Owner' : 'Moderator'}</dd></div></dl>
+          <dl className="detail-list"><div><dt>Name</dt><dd>{admin.name}</dd></div><div><dt>Email</dt><dd>{admin.email}</dd></div><div><dt>Role</dt><dd>{admin.role === 'owner' ? 'Owner' : 'Moderator'}{admin.roles?.length ? ` (${admin.roles.map(r => r.replace(/_/g, ' ')).join(', ')})` : ''}</dd></div></dl>
+          {admin.roles && <p className="muted">Roles are assigned on the server by a super admin. Each action is checked by the database, so some buttons may report that your role is not allowed.</p>}
         </section>
         <section className="panel panel-pad"><h2 className="panel-title">Appearance</h2>
           <div className="segmented" role="group" aria-label="Appearance">
@@ -31,7 +33,7 @@ export function Settings({ admin, appearance, onAppearance }: { admin: AdminAcco
           </section>
         )}
       </div>
-      {confirm && <ConfirmDialog danger title="Reset demo data?" message="All changes you made to promos, conversations, incidents, reports, announcements and users will be replaced with the starter data." confirmLabel="Reset" onCancel={() => setConfirm(false)} onConfirm={() => { adminStore.resetDemoData(); setConfirm(false); toast('Demo data reset.'); }} />}
+      {confirm && <ConfirmDialog danger title="Reset demo data?" message="All changes you made to promos, conversations, incidents, reports, announcements and users will be replaced with the starter data." confirmLabel="Reset" onCancel={() => setConfirm(false)} onConfirm={() => { setConfirm(false); void run(toast, adminStore.resetDemoData(), 'Demo data reset.'); }} />}
     </>
   );
 }

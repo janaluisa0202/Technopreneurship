@@ -1,11 +1,14 @@
 import type { AuthResult, AuthService, AuthUser, CustomerRecord, RegisterInput } from './types';
+import { LIVE_MODE } from '../backend/runtime';
+import { liveAuthService } from './liveAuthService';
 
 /**
  * DEMO AUTH — browser storage only.
  * Anything checked in the browser can be bypassed, so this must be replaced by the backend before real use:
  * the server has to verify credentials, issue the session, and decide whether someone is an admin or a customer.
  */
-export const DEMO_MODE = true;
+/** Demo mode = browser-only accounts below. Live mode (VITE_SAKAYWISE_DATA_MODE=live) = Supabase Auth. */
+export const DEMO_MODE = !LIVE_MODE;
 export const DEMO_ADMIN_PASSWORD = 'SakayWise-Admin1';
 export const DEMO_CUSTOMER_PASSWORD = 'SakayWise-User1';
 
@@ -94,7 +97,7 @@ function startSession(user: AuthUser, keep: boolean) {
   if (user.role === 'customer') { writeJson(LOGINS_KEY, { ...logins(), [user.id]: new Date().toISOString() }); refreshCustomers(); }
 }
 
-export const authService: AuthService = {
+const demoAuthService: AuthService = {
   async login(identifier, password, keep): Promise<AuthResult> {
     const now = Date.now();
     if (now < lockedUntil) return { ok: false, error: `Too many attempts. Try again in ${Math.ceil((lockedUntil - now) / 1000)} seconds.` };
@@ -155,7 +158,13 @@ export const authService: AuthService = {
     return null;
   },
 
-  logout() {
+  async logout() {
     try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* nothing to clear */ }
   },
+  async init() { return demoAuthService.restoreSession(); },
+  onChange: () => () => {},
+  isPasswordRecovery: () => false,
+  async updatePassword() { return { ok: false, error: 'Password changes need the live backend.' }; },
 };
+
+export const authService: AuthService = DEMO_MODE ? demoAuthService : liveAuthService;

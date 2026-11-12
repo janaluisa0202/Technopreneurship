@@ -13,7 +13,7 @@ type GateState = { status: 'ready' } | { status: 'loading' } | { status: 'error'
  * Live mode: loads and validates ONE network/fare snapshot, installs it and the remote support
  * adapter, then mounts the app. A failure shows an error with retry — never demo fixtures.
  */
-export function CommuterDataGate({ config, children }: { config: RuntimeConfig; children: ReactNode }) {
+export function CommuterDataGate({ config, children, account }: { config: RuntimeConfig; children: ReactNode; account?: { id: string; name: string; email: string } }) {
   const { text } = useI18n();
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<GateState>(() => config.mode === 'demo' ? { status: 'ready' }
@@ -27,7 +27,7 @@ export function CommuterDataGate({ config, children }: { config: RuntimeConfig; 
       setActiveCatalog(catalog);
       let storage: Pick<Storage, 'getItem' | 'setItem'>;
       try { storage = localStorage; } catch { storage = { getItem: () => null, setItem: () => { throw new Error('Storage unavailable'); } }; }
-      configureSupportService(createRemoteSupportService(supabase, storage));
+      configureSupportService(createRemoteSupportService(supabase, storage, account));
       setState({ status: 'ready' });
     }).catch(error => {
       if (controller.signal.aborted) return;

@@ -8,6 +8,7 @@ import { catalogPlaces, legacyTrips } from '../services/catalog';
 import { defaultAdvisoryFilters, filterAdvisories } from '../lib/roadwatchService';
 import type { AlertPreferences } from '../types';
 import type { RoadAdvisory, RoadWatchDataStatus, RoadWatchPreferences } from '../types/roadwatch';
+import type { CommuterUpdatesState } from '../types/updates';
 
 interface Props {
   onRetry:()=>void;
@@ -17,6 +18,8 @@ interface Props {
   relevantIds:Set<string>; watchedIds:Set<string>; savedIds:Set<string>;
   roadPreferences:RoadWatchPreferences; onRoadPreference:(key:keyof RoadWatchPreferences)=>void;
   onAdvisory:(id:string)=>void; onWatch:()=>void; canWatch:boolean; watchCurrent:boolean;
+  /** Staff announcements, current promos and broadcasts (admin console → commuters). */
+  updates?:CommuterUpdatesState;
 }
 const oldSettings:{key:keyof AlertPreferences;title:string;description:string}[]=[
   {key:'route',title:'Route disruptions',description:'Route diversions and service changes'},
@@ -32,10 +35,10 @@ const roadSettings:{key:keyof RoadWatchPreferences;title:string;description:stri
   {key:'savedTrips',title:'Advisories affecting saved trips',description:'Match active notices to locally saved guides'},
 ];
 export function AlertsPage(props:Props){
-  const {t,text}=useI18n();
+  const {t,text,locale}=useI18n();
 
-  const {onRetry,watchedTrip,preferences,onToggle,onStopWatch,onGoRoutes,advisories,now,dataStatus,latestUpdate,sourceLabel,relevantIds,watchedIds,savedIds,roadPreferences,onRoadPreference,onAdvisory,onWatch,canWatch,watchCurrent}=props;
-  const [section,setSection]=useState<'roadwatch'|'my-alerts'>('roadwatch');
+  const {onRetry,watchedTrip,preferences,onToggle,onStopWatch,onGoRoutes,advisories,now,dataStatus,latestUpdate,sourceLabel,relevantIds,watchedIds,savedIds,roadPreferences,onRoadPreference,onAdvisory,onWatch,canWatch,watchCurrent,updates}=props;
+  const [section,setSection]=useState<'roadwatch'|'my-alerts'|'updates'>('roadwatch');
   const [filters,setFilters]=useState(defaultAdvisoryFilters);
   const filtered=useMemo(()=>filterAdvisories(advisories,filters,now,relevantIds),[advisories,filters,now,relevantIds]);
   const [originId,destinationId]=(watchedTrip || '').split(':');
@@ -44,8 +47,14 @@ export function AlertsPage(props:Props){
   const myAdvisories=advisories.filter(item=>watchedIds.has(item.id) || savedIds.has(item.id));
   return <div className="fade">
     {(dataStatus==='unavailable' || dataStatus==='outdated') && <button type="button" className="small-outline" onClick={onRetry}>{text("Retry advisory data")}</button>}
-    <div className="segment rw-section-tabs" role="group" aria-label={t("Para Alerts sections")}><button type="button" className={section==='roadwatch'?'on':''} aria-pressed={section==='roadwatch'} onClick={()=>setSection('roadwatch')}>{t("RoadWatch")}</button><button type="button" aria-label={text(`My Alerts${myAdvisories.length?`, ${myAdvisories.length} matching advisories`:''}`)} className={section==='my-alerts'?'on':''} aria-pressed={section==='my-alerts'} onClick={()=>setSection('my-alerts')}>{t("My Alerts")}{myAdvisories.length>0 && <span className="rw-inline-count" aria-hidden="true">{myAdvisories.length}</span>}</button></div>
-    {section==='roadwatch'?<>
+    <div className="segment rw-section-tabs" role="group" aria-label={t("Para Alerts sections")}><button type="button" className={section==='roadwatch'?'on':''} aria-pressed={section==='roadwatch'} onClick={()=>setSection('roadwatch')}>{t("RoadWatch")}</button><button type="button" aria-label={text(`My Alerts${myAdvisories.length?`, ${myAdvisories.length} matching advisories`:''}`)} className={section==='my-alerts'?'on':''} aria-pressed={section==='my-alerts'} onClick={()=>setSection('my-alerts')}>{t("My Alerts")}{myAdvisories.length>0 && <span className="rw-inline-count" aria-hidden="true">{myAdvisories.length}</span>}</button>{updates && <button type="button" aria-label={text(`Updates${updates.items.length?`, ${updates.items.length} items`:''}`)} className={section==='updates'?'on':''} aria-pressed={section==='updates'} onClick={()=>setSection('updates')}>{text('Updates')}{updates.items.length>0 && <span className="rw-inline-count" aria-hidden="true">{updates.items.length}</span>}</button>}</div>
+    {section==='updates' && updates?<>
+      <header className="section-head"><span className="back-overline">{text('PARA ALERTS · UPDATES')}</span><h1>{text('From the SakayWise team')}</h1><p>{text(updates.mode==='live'?'Announcements, current promos and messages posted by SakayWise staff. Route messages appear when they match a journey you planned, watch, or saved.':'Demo: announcements, promos and messages saved in the admin console of this browser.')}</p></header>
+      {updates.status==='error' && <div className="queue-warning" role="alert"><span>{text('Updates could not be refreshed. Showing the last loaded items.')}</span> <button type="button" className="link-button" onClick={updates.retry}>{text('Try again')}</button></div>}
+      {updates.status==='loading' && !updates.items.length && <p className="demo-note" role="status">{text('Loading updates…')}</p>}
+      {updates.status!=='loading' && !updates.items.length && <div className="card rw-empty"><Icon name="bell" size={26}/><h2>{text('No updates right now')}</h2><p>{text('Announcements, promos and messages from SakayWise will appear here.')}</p></div>}
+      {updates.items.map(item=><article className="card section-card" key={item.id}><span className="back-overline">{text(item.label)}{item.routeLabel?` · ${text('For commuters on')} ${item.routeLabel}`:''}</span><h2 className="card-title">{item.title}</h2><p className="card-desc">{item.body}</p>{item.detail && <p className="demo-note">{item.detail}</p>}<p className="demo-note"><time dateTime={item.at}>{new Intl.DateTimeFormat(locale,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(item.at))}</time></p></article>)}
+    </>:section==='roadwatch'?<>
       <RoadWatchSummary advisories={advisories} now={now} dataStatus={dataStatus} latestUpdate={latestUpdate} label={sourceLabel}/>
       <RoadWatchFilters filters={filters} onChange={setFilters} onReset={()=>setFilters({...defaultAdvisoryFilters})}/>
       <p className="rw-result-count" role="status">{filtered.length} {t("advisor")}{filtered.length===1?t("y"):t("ies")} {t("match your filters.")}</p>

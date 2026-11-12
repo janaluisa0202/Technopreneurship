@@ -1,7 +1,7 @@
 import type { SupportCategory } from '../../apps/commuter/types/support';
 
 export type { SupportCategory };
-export type ConversationStatus = 'open' | 'pending' | 'resolved';
+export type ConversationStatus = 'open' | 'pending' | 'resolved' | 'closed';
 
 export interface ThreadMessage {
   id: string;

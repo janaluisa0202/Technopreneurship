@@ -11,6 +11,10 @@ import {
   type AdvisoryRow, type CatalogRows, type QueueEstimateRow,
 } from './remoteCatalog';
 
+/** Polling fallback for Realtime (blocked websockets, Realtime disabled, flaky mobile networks). */
+const FALLBACK_POLL_MS = 60000;
+const SUPPORT_POLL_MS = 20000;
+
 async function data<T>(request: PromiseLike<{ data: unknown; error: unknown }>): Promise<T> {
   const { data: rows, error } = await request;
   if (error) throw error;
@@ -59,7 +63,9 @@ export function createRemoteQueueService(supabase: SupabaseClient): RemoteQueueS
       const channel = supabase.channel(`queue-signals-${createClientId()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_terminal_signals' }, () => onChange())
         .subscribe(status => { if (status === 'SUBSCRIBED') onChange(); });
-      return () => { void supabase.removeChannel(channel); };
+      // Fallback when Realtime is unavailable: refresh while the page is visible.
+      const poll = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') onChange(); }, FALLBACK_POLL_MS);
+      return () => { clearInterval(poll); void supabase.removeChannel(channel); };
     },
   };
 }
@@ -87,7 +93,8 @@ export function createRemoteRoadWatchProvider(supabase: SupabaseClient, clock = 
       const channel = supabase.channel(`roadwatch-${createClientId()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'road_advisories' }, debounced)
         .subscribe();
-      return () => { clearTimeout(timer); void supabase.removeChannel(channel); };
+      const poll = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') onChange(); }, FALLBACK_POLL_MS);
+      return () => { clearTimeout(timer); clearInterval(poll); void supabase.removeChannel(channel); };
     },
   };
 }
@@ -127,7 +134,10 @@ async function rpcRow<T>(supabase: SupabaseClient, fn: string, args: Record<stri
   return row as T;
 }
 
-export function createRemoteSupportService(supabase: SupabaseClient, storage: Pick<Storage, 'getItem' | 'setItem'>): SupportService {
+export function createRemoteSupportService(supabase: SupabaseClient, storage: Pick<Storage, 'getItem' | 'setItem'>, account?: { id: string; name: string; email: string }): SupportService {
+  // Drafts stay on the device, per account, so two people sharing a browser never see each other's draft.
+  const draftKey = account ? `${REMOTE_DRAFT_KEY}:${account.id}` : REMOTE_DRAFT_KEY;
+  const defaults = (): SupportDraft => ({ ...emptySupportDraft(), ...(account ? { nickname: account.name, email: account.email } : {}) });
   const metadata = (draft: SupportDraft) => ({ p_category: draft.category, p_nickname: draft.nickname, p_contact_email: draft.email, p_related_trip: draft.relatedTrip });
   return {
     mode: 'remote',
@@ -169,7 +179,8 @@ export function createRemoteSupportService(supabase: SupabaseClient, storage: Pi
       };
       void currentUserId(supabase).then(id => { if (id) start(); });
       const { data: auth } = supabase.auth.onAuthStateChange((_event, session) => { if (session) start(); });
-      return () => { auth.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
+      const poll = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') listener(); }, SUPPORT_POLL_MS);
+      return () => { clearInterval(poll); auth.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
     },
     async markConversationRead(conversationId) {
       const { error } = await supabase.rpc('support_mark_read', { p_conversation_id: conversationId });
@@ -177,15 +188,15 @@ export function createRemoteSupportService(supabase: SupabaseClient, storage: Pi
     },
     async getDraft() {
       try {
-        const parsed: unknown = JSON.parse(storage.getItem(REMOTE_DRAFT_KEY) || 'null');
+        const parsed: unknown = JSON.parse(storage.getItem(draftKey) || 'null');
         const draft = parsed as SupportDraft;
         if (parsed && typeof parsed === 'object' && ['message', 'nickname', 'email', 'relatedTrip'].every(key => typeof (parsed as Record<string, unknown>)[key] === 'string')
           && Object.hasOwn(supportCategories, draft.category)) return { ...draft };
       } catch { /* fall through */ }
-      return emptySupportDraft();
+      return defaults();
     },
     async saveDraft(draft) {
-      try { storage.setItem(REMOTE_DRAFT_KEY, JSON.stringify(draft)); } catch { throw new SupportError('storage'); }
+      try { storage.setItem(draftKey, JSON.stringify(draft)); } catch { throw new SupportError('storage'); }
     },
   };
 }
