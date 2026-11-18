@@ -15,6 +15,19 @@ npm run dev
 
 Open the URL printed by Vite, normally `http://localhost:5173/`. Desktop displays the same app inside a centered phone frame; mobile fills the usable viewport. The app starts at `src/main.tsx`.
 
+### Test on a real phone (LAN)
+
+```sh
+npm run lan
+```
+
+1. Connect the phone to the **same Wi-Fi** as the computer (not a guest/isolated network, not mobile data).
+2. Open the **Network** URL Vite prints, e.g. `http://192.168.1.23:5173/` (admin: `/admin.html`).
+3. If the page does not load, allow Node.js through the computer's firewall (Windows: allow on *Private* networks), then retry.
+
+`npm run lan:build` builds and serves the production bundle on port 4173 instead.
+Over plain `http://` on a LAN IP the browser is not a "secure context", so creating a **new** demo account is unavailable there; the seeded demo accounts shown on the login page still work.
+
 ```sh
 npm run typecheck
 npm test
