@@ -1,12 +1,13 @@
 /* Login page + small commuter additions. Uses the commuter palette variables from styles.css. */
 .auth-page { position:fixed; inset:0; z-index:5; overflow-y:auto; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); background:var(--paper); color:var(--ink); font-family:inherit; }
-.auth-brand { background:var(--yellow); color:var(--brand-navy, #111a30); display:flex; flex-direction:column; justify-content:center; gap:14px; padding:64px; }
-.auth-wordmark { font-weight:900; line-height:1.1; letter-spacing:-1.2px; color:var(--brand-blue, #233f93); font-size:1.75rem; }
-.auth-wordmark span { color:var(--brand-red, #e5223c); }
-.auth-wordmark.big { font-size:4rem; letter-spacing:-3px; }
-.auth-wordmark.small { display:none; margin-bottom:24px; }
-.auth-tag { font-size:1.125rem; font-weight:800; margin:0; }
-.auth-copy { max-width:38ch; font-size:1.0625rem; line-height:1.6; font-weight:550; margin:0; }
+.auth-brand { position:relative; overflow:hidden; isolation:isolate; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:14px; padding:48px; color:#111a30; background:linear-gradient(155deg,#ffffff 0%,#fff7da 52%,#ffd24d 100%); }
+/* Soft brand shapes behind the logo (fixed colours so the navy logo is readable in light and dark themes). */
+.auth-brand::before, .auth-brand::after { content:""; position:absolute; z-index:-1; border-radius:50%; pointer-events:none; }
+.auth-brand::before { width:min(520px,70%); aspect-ratio:1; right:-14%; top:-12%; background:radial-gradient(circle,rgba(255,195,36,.55) 0%,rgba(255,195,36,0) 70%); }
+.auth-brand::after { width:min(440px,60%); aspect-ratio:1; left:-12%; bottom:-14%; background:radial-gradient(circle,rgba(35,63,147,.14) 0%,rgba(35,63,147,0) 70%); }
+.auth-logo { display:block; width:min(340px,100%,46vh); height:auto; margin:0 auto 10px; filter:drop-shadow(0 10px 18px rgba(17,26,48,.18)); }
+.auth-tag { font-size:1.25rem; font-weight:800; margin:0; color:#233f93; }
+.auth-copy { max-width:38ch; color:#1c2742; font-size:1.0625rem; line-height:1.6; font-weight:550; margin:0; }
 .auth-card { display:flex; flex-direction:column; justify-content:center; width:min(440px,100%); margin:0 auto; padding:40px 28px; box-sizing:border-box; }
 .auth-card h1 { font-size:1.75rem; letter-spacing:-.8px; color:var(--heading); margin:0 0 6px; }
 .auth-sub { color:var(--muted); margin:0 0 22px; line-height:1.5; }
@@ -32,9 +33,13 @@
 .auth-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 .auth-note { position:fixed; inset:0; display:grid; place-items:center; background:var(--paper); color:var(--ink); font-weight:700; }
 @media (max-width:860px) {
-  .auth-page { grid-template-columns:1fr; }
-  .auth-brand { display:none; }
-  .auth-wordmark.small { display:block; }
+  .auth-page { display:flex; flex-direction:column; }
+  /* Phone/tablet: the brand panel becomes a compact banner with the logo, curved at the bottom. */
+  .auth-brand { flex:0 0 auto; align-items:center; text-align:center; gap:0; padding:max(18px,env(safe-area-inset-top)) 20px 30px; border-radius:0 0 32px 32px; box-shadow:0 8px 24px rgba(17,26,48,.14); }
+  .auth-brand .auth-logo { width:min(190px,54vw); margin:0; }
+  .auth-card { flex:1 0 auto; }
+  @media (max-height:720px) { .auth-brand { padding-bottom:20px; } .auth-brand .auth-logo { width:min(150px,44vw); } }
+  .auth-brand .auth-tag, .auth-brand .auth-copy { display:none; }
 }
 
 /* Commuter: unread-reply badge on the Help & Support button */

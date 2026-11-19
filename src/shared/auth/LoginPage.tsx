@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { authService, DEMO_ADMIN_PASSWORD, DEMO_CUSTOMER_PASSWORD, DEMO_MODE } from './authService';
 import type { AuthResult, AuthUser } from './types';
+import logo from '../assets/logo.png';
 import './auth.css';
 
 type Mode = 'signin' | 'register' | 'forgot' | 'sent' | 'confirm' | 'recovery';
@@ -62,13 +63,12 @@ export function LoginPage({ onSignedIn, initialMode = 'signin' }: { onSignedIn: 
 
   return (
     <main className="auth-page">
-      <section className="auth-brand" aria-hidden="true">
-        <div className="auth-wordmark big">Sakay<span>Wise</span></div>
+      <section className="auth-brand">
+        <img className="auth-logo" src={logo} alt="SakayWise: Plan, Ride, Fare, Go" width={461} height={383} decoding="async" />
         <p className="auth-tag">Your smarter way to commute.</p>
         <p className="auth-copy">Sign in to plan routes, check fares and queues, and chat with the SakayWise support team.</p>
       </section>
       <section className="auth-card">
-        <div className="auth-wordmark small">Sakay<span>Wise</span></div>
 
         {mode === 'signin' && (
           <form onSubmit={signIn} noValidate>
