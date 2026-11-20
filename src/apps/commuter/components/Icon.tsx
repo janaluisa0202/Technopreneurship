@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react';
 
 const paths = {
+  logout:'<path d="M9 4H4v16h5M14 8l4 4-4 4m-6-4h14"/>',
   edit:'<path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z"/>',
   mapFold:'<path d="m3 5 6-3 6 3 6-3v17l-6 3-6-3-6 3zM9 2v17m6-14v17"/>',
   expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>', 

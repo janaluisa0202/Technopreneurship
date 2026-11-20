@@ -33,7 +33,7 @@ async function start() {
   authService.onChange(next => { if (!next || next.role !== 'admin') location.replace(home); });
   root.render(
     <React.StrictMode>
-      <AdminApp account={account} onSignOut={() => { void authService.logout().finally(() => location.replace(home)); }} />
+      <AdminApp account={account} onSignOut={() => { void authService.logout().then(() => location.replace(home), () => note('Unable to log out. Please try again.', true)); }} />
     </React.StrictMode>,
   );
 }

@@ -167,20 +167,22 @@ export function createRemoteSupportService(supabase: SupabaseClient, storage: Pi
       return (rows as ConversationRow[]).map(toConversation);
     },
     subscribeToMessages(listener) {
+      let active=true;
+      let signedOut=false;
       let channel: RealtimeChannel | undefined;
       const start = () => {
-        if (channel) return;
+        if (!active || signedOut || channel) return;
         // RLS limits these events to conversations this session owns.
         channel = supabase.channel(`support-${createClientId()}`)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => listener())
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_conversations' }, () => listener())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => {if(active)listener();})
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_conversations' }, () => {if(active)listener();})
           // Fires after every (re)connection, so messages missed while offline are refetched.
-          .subscribe(status => { if (status === 'SUBSCRIBED') listener(); });
+          .subscribe(status => { if (active && status === 'SUBSCRIBED') listener(); });
       };
-      void currentUserId(supabase).then(id => { if (id) start(); });
-      const { data: auth } = supabase.auth.onAuthStateChange((_event, session) => { if (session) start(); });
+      void currentUserId(supabase).then(id => { if (id && (!account || id===account.id)) start(); }).catch(()=>{});
+      const { data: auth } = supabase.auth.onAuthStateChange((_event, session) => { if(!active)return;signedOut=!session || (!!account && session.user.id!==account.id);if(!signedOut)start();else if(channel){void supabase.removeChannel(channel);channel=undefined;} });
       const poll = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') listener(); }, SUPPORT_POLL_MS);
-      return () => { clearInterval(poll); auth.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
+      return () => { active=false;clearInterval(poll); auth.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
     },
     async markConversationRead(conversationId) {
       const { error } = await supabase.rpc('support_mark_read', { p_conversation_id: conversationId });

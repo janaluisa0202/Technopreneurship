@@ -5,10 +5,12 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { setSessionPersistence } from '../../apps/commuter/services/supabase/client';
 import { getLiveClient } from '../backend/runtime';
 import type { AuthResult, AuthService, AuthUser, RegisterInput } from './types';
+import { signOutSession } from './logout';
 import { userFrom } from './roles';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 let current: AuthUser | null = null;
+let sessionRevision=0;
 let recovery = false;
 let initialised: Promise<AuthUser | null> | undefined;
 const listeners = new Set<(user: AuthUser | null) => void>();
@@ -36,20 +38,25 @@ export const liveAuthService: AuthService = {
     initialised ??= (async () => {
       const supabase = await getLiveClient();
       supabase.auth.onAuthStateChange((event, session) => {
+        if(!['SIGNED_OUT','SIGNED_IN','USER_UPDATED','PASSWORD_RECOVERY'].includes(event))return;
+        const revision=++sessionRevision;
+        if(event==='SIGNED_OUT'){current=null;recovery=false;notify();return;}
         // Supabase warns against awaiting other client calls inside this callback.
         setTimeout(() => {
+          if(revision!==sessionRevision)return;
           if (event === 'PASSWORD_RECOVERY') { recovery = true; notify(); return; }
-          if (event === 'SIGNED_OUT') { current = null; recovery = false; notify(); return; }
           if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user.id !== current?.id) {
-            resolveUser(supabase, session).then(user => { current = user; notify(); }).catch(() => {});
+            resolveUser(supabase, session).then(user => { if(revision===sessionRevision){current = user; notify();} }).catch(() => {});
           }
         }, 0);
       });
+      const revision=sessionRevision;
       const { data } = await supabase.auth.getSession();
-      try { current = await resolveUser(supabase, data.session); } catch { current = null; }
+      const restored=await resolveUser(supabase,data.session).catch(()=>null);
+      if(revision===sessionRevision)current=restored;
       return current;
     })();
-    return initialised;
+    return initialised.then(()=>current).catch(error=>{initialised=undefined;throw error;});
   },
 
   async login(identifier, password, keep) {
@@ -121,10 +128,10 @@ export const liveAuthService: AuthService = {
   async logout() {
     const supabase = await getLiveClient();
     if (current?.role === 'admin') await supabase.rpc('admin_log_event', { p_detail: 'Signed out' }).then(() => {}, () => {});
-    current = null;
-    recovery = false;
-    await supabase.auth.signOut().catch(() => supabase.auth.signOut({ scope: 'local' }));
-    notify();
+    // Keep the existing default/global Supabase scope shared with admin. Never
+    // claim success or fall back to a local-only sign-out on a failed request.
+    sessionRevision++;
+    await signOutSession(supabase.auth,()=>{sessionRevision++;current=null;recovery=false;notify();});
   },
 
   onChange(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },

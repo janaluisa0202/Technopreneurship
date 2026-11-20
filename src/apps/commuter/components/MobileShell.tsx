@@ -23,9 +23,9 @@ interface Props {
 
 const tabs = [
   {id:'routes',label:'Routes',icon:'compass'},
-  {id:'fares',label:'Fare Matrix',icon:'calc'},
+  {id:'fares',label:'Fares',icon:'calc'},
   {id:'queues',label:'Queues',icon:'users'},
-  {id:'alerts',label:'Para Alerts',icon:'bell'},
+  {id:'alerts',label:'Alerts',icon:'bell'},
 ] as const;
 
 export function MobileShell({tab,onTab,children,overlay,toast,notice,overlayOpen,savedCount,onSaved,alertCount=0,onSettings,onSupport,supportUnread=0}:Props) {

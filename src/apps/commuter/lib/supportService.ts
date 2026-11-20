@@ -39,5 +39,5 @@ export function createLocalSupportService(storage:Pick<Storage,'getItem'|'setIte
 }
 let service:SupportService|undefined;
 /** Live mode installs the remote adapter once, before the app renders (CommuterDataGate). */
-export function configureSupportService(next:SupportService){service=next;}
+export function configureSupportService(next:SupportService|undefined){service=next;}
 export function getSupportService(){if(!service){let storage:Pick<Storage,'getItem'|'setItem'>;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw new Error('Storage unavailable');}};}service=createLocalSupportService(storage);}return service;}

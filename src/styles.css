@@ -797,3 +797,65 @@ summary:focus-visible { outline:3px solid var(--blue); outline-offset:2px; borde
 .data-gate .wordmark { margin:0 auto 4px; }
 .data-gate p { margin:0; line-height:1.6; }
 .link-button { background:none; border:0; padding:0 2px; color:inherit; font:inherit; font-weight:700; text-decoration:underline; cursor:pointer; min-height:0; }
+
+/* Account logout stays inside the commuter phone viewport. */
+.settings-logout-section { margin:18px 0 4px; }
+.commuter-logout, .logout-confirm { display:flex; align-items:center; justify-content:center; gap:9px; min-height:48px; border:1px solid var(--danger-text); border-radius:12px; background:var(--surface-danger); color:var(--danger-text); padding:12px 16px; font-size:.875rem; font-weight:750; line-height:1.5; }
+.commuter-logout { width:100%; }
+.logout-overlay { position:absolute; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:calc(20px + var(--safe-top)) calc(16px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(16px + var(--safe-left)); background:var(--paper); overflow-y:auto; overscroll-behavior:contain; }
+.logout-dialog { width:100%; max-width:370px; max-height:100%; overflow-y:auto; padding:20px; border:1px solid var(--line); border-radius:20px; background:var(--surface); box-shadow:var(--shadow); }
+.logout-emblem { width:50px; height:50px; display:grid; place-items:center; border-radius:15px; background:var(--surface-danger); color:var(--danger-text); }
+.logout-dialog h2 { color:var(--heading); font-size:1.2rem; line-height:1.4; margin:16px 0 10px; overflow-wrap:anywhere; }
+.logout-dialog p { font-size:.875rem; color:var(--muted); line-height:1.65; }
+.logout-dialog .logout-error { color:var(--danger-text); }
+.logout-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr)); gap:10px; margin-top:20px; }
+.logout-actions button { min-width:0; min-height:48px; overflow-wrap:anywhere; font-size:.875rem; }
+
+/* Readable defaults for commuter screens; geometry and all five text scales remain. */
+.phone .view p, .phone .sheet-body p, .phone .application-panel-scroll p { font-size:1rem; line-height:1.65; }
+.phone :is(.field-main,.location-result-copy strong,.leg-copy h3,.card-title,.route-card-modes,.setting-options button span) { font-size:1rem; }
+.phone :is(.field-address,.field-label,.input-hint,.demo-note,.matrix-note,.queue-detail,.brand-demo,.route-signboards,.route-card-facts,.rw-source-notice,.support-message footer,.leg-values,.leg-locations,.location-demo-note,.location-section h3) { font-size:.875rem; line-height:1.55; }
+.phone :is(.text-btn,.small-outline,.route-preferences button,.filter-bar button,.rw-category-filters button,.nav-button,.submit,.manual-address,.clear-location,.settings-size-buttons button,.support-metadata summary,.segment button,.faq-item summary) { font-size:.9375rem; line-height:1.5; }
+.phone :is(.address-input label,.passenger-box label,.support-history-label,.support-metadata label,.support-top > p,.support-message > strong,.quoted-label) { font-size:1rem; line-height:1.5; }
+.phone .nav-button { font-size:.8125rem; overflow-wrap:anywhere; }
+.phone .field-address { display:block; -webkit-line-clamp:unset; }
+.phone .route-card-facts { flex-wrap:wrap; }
+.phone .support-dock { padding-block:4px; }
+.phone .introduction-description { font-size:1rem; }
+.phone .introduction-demo { font-size:.875rem; }
+.phone .onboarding-dots button { min-width:44px; }
+.phone :is(summary,.clear-location,.close,.location-back,.swap-locations) { min-height:44px; }
+.phone :is(summary,button):focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
+.data-notice { margin:12px 0; color:var(--muted); }
+.data-notice summary, .alternative-reason summary { min-height:44px; font-size:.9375rem; line-height:1.5; cursor:pointer; }
+.data-notice > p { margin:8px 0; }
+.saved-remove-confirm { margin:8px 0; padding:10px; border:1px solid var(--line); border-radius:10px; }
+.saved-remove-confirm button { margin-right:6px; }
+.phone .segment button { overflow-wrap:anywhere; }
+.phone .rw-section-tabs { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr)); }
+.phone .journey-metrics dt { font-size:.875rem; line-height:1.5; }
+.phone .journey-metrics dd { font-size:1.125rem; }
+.phone .leg-locations dt, .phone .leg-locations dd { font-size:.9375rem; line-height:1.5; }
+/* Home: plan, choose a ride, check its fare. */
+.home-fare { padding:14px; margin:12px 0; }
+.home-fare h2 { margin:0 0 10px; font-size:1.125rem; color:var(--heading); }
+.phone .home-fare-total { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; font-size:1.5rem; font-weight:800; color:var(--blue); margin:8px 0; }
+.home-fare-total span { font-size:.875rem; color:var(--muted); font-weight:600; }
+.home-fare > p { margin:6px 0; }
+.phone .home-fare-source { font-size:.875rem; color:var(--muted); }
+.home-fare > button { display:flex; width:100%; align-items:center; justify-content:center; gap:8px; }
+.home-alternative { border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+.home-alternative > summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; padding:12px; min-height:48px; cursor:pointer; list-style:none; font-size:.9375rem; color:var(--heading); }
+.home-alternative > summary span:first-child { font-weight:750; }
+.home-alternative > summary::-webkit-details-marker { display:none; }
+.home-alternative > .recommendation-card { border:0; border-top:1px solid var(--line); border-radius:0 0 14px 14px; }
+.home-shortcuts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.home-shortcuts button { display:flex; align-items:center; justify-content:center; gap:7px; min-width:0; padding:10px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--blue); font-size:.9375rem; line-height:1.5; min-height:48px; overflow-wrap:anywhere; }
+
+/* Best Route: keep the selected preference clear in both themes. */
+.phone .route-preferences > button[aria-pressed="true"] {
+  background:#1e3a8a;
+  color:#fff;
+  border-color:#1e3a8a;
+  font-weight:600;
+}

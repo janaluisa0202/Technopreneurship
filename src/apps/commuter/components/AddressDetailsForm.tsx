@@ -82,7 +82,7 @@ export function AddressDetailsForm({ field, initial, other, onChangePlace, onCon
               ['city', 'City / Municipality', 'e.g., Manila'],
             ] as const).map(([key, label, placeholder]) => <div className={`address-input ${key === 'building' || key === 'street' ? 'address-wide' : ''}`} key={key}>
               <label htmlFor={`address-${key}`}>{text(label)} <span>{t("(optional)")}</span></label>
-              <input id={`address-${key}`} autoComplete="off" maxLength={150} placeholder={placeholder}
+              <input id={`address-${key}`} autoComplete="off" maxLength={150} placeholder={text(placeholder)}
                 value={details[key]} onChange={event => updateDetail(key, event.target.value)}/>
             </div>)}
           </div>

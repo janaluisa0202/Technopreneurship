@@ -74,6 +74,8 @@ export const customerDirectory = {
 };
 
 /* ---------- sessions ---------- */
+const sessionListeners=new Set<(user:AuthUser|null)=>void>();
+const notifySession=(user:AuthUser|null)=>sessionListeners.forEach(listener=>listener(user));
 let failures = 0;
 let lockedUntil = 0;
 
@@ -94,6 +96,7 @@ function startSession(user: AuthUser, keep: boolean) {
     localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY);
     (keep ? localStorage : sessionStorage).setItem(SESSION_KEY, session);
   } catch { /* the session still works for this page load */ }
+  notifySession(user);
   if (user.role === 'customer') { writeJson(LOGINS_KEY, { ...logins(), [user.id]: new Date().toISOString() }); refreshCustomers(); }
 }
 
@@ -159,10 +162,19 @@ const demoAuthService: AuthService = {
   },
 
   async logout() {
-    try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* nothing to clear */ }
+    // This is the existing DEMO session, not a Supabase token. Do not claim
+    // success when persistent demo-session removal fails.
+    for(const store of [localStorage,sessionStorage])store.removeItem(SESSION_KEY);
+    notifySession(null);
   },
   async init() { return demoAuthService.restoreSession(); },
-  onChange: () => () => {},
+  onChange(listener){
+    sessionListeners.add(listener);
+    const refresh=()=>listener(demoAuthService.restoreSession());
+    const changed=(event:StorageEvent)=>{if(event.key===SESSION_KEY)refresh();};
+    window.addEventListener('storage',changed);window.addEventListener('focus',refresh);
+    return()=>{sessionListeners.delete(listener);window.removeEventListener('storage',changed);window.removeEventListener('focus',refresh);};
+  },
   isPasswordRecovery: () => false,
   async updatePassword() { return { ok: false, error: 'Password changes need the live backend.' }; },
 };

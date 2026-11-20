@@ -32,6 +32,7 @@ export interface AuthService {
   restoreSession(): AuthUser | null;
   /** Loads the session (live mode: from Supabase, role from the server). Demo: resolves restoreSession(). */
   init(): Promise<AuthUser | null>;
+  /** Await actual sign-out; rejects on failure. Live mode keeps the shared SDK default/global scope. */
   logout(): Promise<void>;
   /** Sign-in/out from another tab, session expiry, or a password-recovery link. */
   onChange(listener: (user: AuthUser | null) => void): () => void;
