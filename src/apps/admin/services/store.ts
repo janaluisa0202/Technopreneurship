@@ -8,9 +8,10 @@ import { newId } from '../lib/format';
 import { createSeedState } from './seed';
 import { customerDirectory } from '../../../shared/auth/authService';
 import { SupportStoreError, supportStore, useConversations } from '../../../shared/messaging/supportStore';
+import { demoAutoReplyStore, type AutoReplyConfig } from '../../../shared/messaging/autoReply';
 import { DEMO_MODE } from '../../../shared/auth/authService';
 import { sampleTrips } from '../../commuter/data/demo';
-import { LiveActionError, liveAdminStore, useLiveAdminState } from './liveStore';
+import { LiveActionError, liveAdminStore, useLiveAdminState, useLiveSupportWatch } from './liveStore';
 import type { RouteOption, SyncState } from '../types';
 
 /**
@@ -84,6 +85,11 @@ const demoStore = {
   },
 
   /* ---------- Help center (conversations live in the shared support store) ---------- */
+  loadAutoReply: () => demoAutoReplyStore.get(),
+  saveAutoReply(config: AutoReplyConfig) {
+    try { demoAutoReplyStore.save(config); } catch (e) { throw new ValidationError(e instanceof Error ? e.message : 'Could not save.'); }
+    commit(withLog(state, 'support', 'Updated support auto-reply', `${config.enabled ? 'On' : 'Off'} · ${config.channels.filter(c => c.active).length} contact channel(s)`));
+  },
   markConversationRead(id: string) { supportStore.adminMarkRead(id); },
   markConversationUnread(id: string) { supportStore.adminMarkUnread(id); },
   reply(id: string, text: string) {
@@ -182,6 +188,7 @@ const demoStore = {
   /* ---------- Reset ---------- */
   resetDemoData() {
     supportStore.reset();
+    demoAutoReplyStore.reset();
     commit(withLog(createSeedState(), 'system', 'Reset demo data', 'All modules'));
   },
 };
@@ -223,6 +230,8 @@ export const adminStore: AdminStore = DEMO_MODE ? asyncify(demoStore as unknown 
 /** Demo store internals for tests/reset tooling. */
 export const demoAdminStore = demoStore;
 export const useAdminState: () => AdminView = DEMO_MODE ? useDemoAdminState : useLiveAdminState;
+/** Faster support refresh while the Help Center is open (demo data updates instantly). */
+export const useSupportWatch: () => void = DEMO_MODE ? () => {} : useLiveSupportWatch;
 /** User-facing message for a failed admin action (validation or server). */
 export function actionMessage(error: unknown, fallback: string): string {
   return error instanceof ValidationError || error instanceof LiveActionError ? error.message : fallback;

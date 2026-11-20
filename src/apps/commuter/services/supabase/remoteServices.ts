@@ -13,7 +13,8 @@ import {
 
 /** Polling fallback for Realtime (blocked websockets, Realtime disabled, flaky mobile networks). */
 const FALLBACK_POLL_MS = 60000;
-const SUPPORT_POLL_MS = 20000;
+// Fallback when Realtime is unavailable; also how new replies and "Seen" receipts appear without it.
+const SUPPORT_POLL_MS = 10000;
 
 async function data<T>(request: PromiseLike<{ data: unknown; error: unknown }>): Promise<T> {
   const { data: rows, error } = await request;

@@ -147,6 +147,17 @@ begin;
     ...a.affectedRouteIds.map(id => [lit(a.id), "'itinerary'", 'null', 'null', 'null', lit(id)]),
   ]);
   sql += `insert into public.road_advisory_impacts (advisory_id, target_type, segment_id, stop_id, service_id, itinerary_id) values\n` +
-    impacts.map(row => `  (${row.join(', ')})`).join(',\n') + ';\n\ncommit;\n';
+    impacts.map(row => `  (${row.join(', ')})`).join(',\n') + ';\n\n';
+
+  // Support auto-reply: obviously fake placeholder contacts (reserved .example domain, invalid phone number).
+  // Production starts with NO channels; staff add real ones in Admin → Settings → Support auto-reply.
+  sql += '-- Demo support contact channels (placeholders — replace with real channels in production)\n' + upsert('support_contact_channels',
+    ['id', 'kind', 'label', 'value', 'sort_order', 'is_active'],
+    [
+      [lit(demoUuid(200)), "'email'", "'Email (demo)'", "'support@sakaywise.example'", '10', 'true'],
+      [lit(demoUuid(201)), "'phone'", "'Hotline (demo placeholder)'", "'+63 2 0000 0000'", '20', 'true'],
+      [lit(demoUuid(202)), "'messenger'", "'Facebook Messenger (demo)'", "'m.me/sakaywise.example'", '30', 'true'],
+    ]);
+  sql += `update public.support_auto_reply_settings set support_hours = 'Monday to Saturday, 8:00 AM – 6:00 PM (demo)' where id;\n\ncommit;\n`;
   return sql;
 }

@@ -1,3 +1,4 @@
+import { composeAutoReply, demoAutoReplyStore, shouldAutoReply } from './autoReply';
 import { useSyncExternalStore } from 'react';
 import type { Conversation, ConversationStatus, SupportCategory, ThreadMessage } from './types';
 import { createSeedConversations } from './seed';
@@ -84,19 +85,31 @@ export const supportStore = {
     if (last?.senderType === 'commuter' && last.message === body && Date.now() - Date.parse(last.createdAt) < 5000) throw new SupportStoreError('duplicate');
     const ts = nowIso();
     const message: ThreadMessage = { id: newId('msg'), senderType: 'commuter', senderId: userId, senderName, message: body, createdAt: ts, requestId };
-    patch(id, x => ({ ...x, messages: [...x.messages, message], lastMessageAt: ts, unread: true, status: x.status === 'resolved' ? 'open' : x.status }));
+    // Automated acknowledgement with alternative contact channels (same rule and text as the live database trigger).
+    const config = demoAutoReplyStore.get();
+    const auto: ThreadMessage[] = c.messages.length + 1 < MAX_MESSAGES && shouldAutoReply(config, c.messages)
+      ? [{ id: newId('msg'), senderType: 'system', senderId: 'system', senderName: 'Automated reply', message: composeAutoReply(config), createdAt: new Date(Date.parse(ts) + 1).toISOString() }]
+      : [];
+    patch(id, x => ({ ...x, messages: [...x.messages, message, ...auto], lastMessageAt: ts, unread: true, status: x.status === 'resolved' ? 'open' : x.status }));
     return message;
   },
   markReadByCustomer(userId: string, id: string) {
     const c = find(id); if (!c || c.userId !== userId) return;
-    if (!c.messages.some(m => m.senderType === 'admin' && !m.readAt)) return;
+    if (!c.messages.some(m => m.senderType !== 'commuter' && !m.readAt)) return;
     const ts = nowIso();
-    patch(id, x => ({ ...x, messages: x.messages.map(m => (m.senderType === 'admin' && !m.readAt ? { ...m, readAt: ts } : m)) }));
+    patch(id, x => ({ ...x, messages: x.messages.map(m => (m.senderType !== 'commuter' && !m.readAt ? { ...m, readAt: ts } : m)) }));
   },
-  unreadForCustomer: (userId: string) => conversations.filter(c => c.userId === userId).reduce((n, c) => n + c.messages.filter(m => m.senderType === 'admin' && !m.readAt).length, 0),
+  unreadForCustomer: (userId: string) => conversations.filter(c => c.userId === userId).reduce((n, c) => n + c.messages.filter(m => m.senderType !== 'commuter' && !m.readAt).length, 0),
 
   /* ---------- admin side ---------- */
-  adminMarkRead(id: string) { if (find(id)?.unread) patch(id, c => ({ ...c, unread: false })); },
+  /** Opening a conversation records "Seen" on the commuter's messages (once; receipts are never cleared). */
+  adminMarkRead(id: string) {
+    const c = find(id); if (!c) return;
+    if (!c.unread && c.messages.every(m => m.senderType !== 'commuter' || m.readAt)) return;
+    const ts = nowIso();
+    patch(id, x => ({ ...x, unread: false, messages: x.messages.map(m => (m.senderType === 'commuter' && !m.readAt ? { ...m, readAt: ts } : m)) }));
+  },
+  /** Inbox flag for staff only — the commuter's "Seen" receipt stays. */
   adminMarkUnread(id: string) { if (find(id)) patch(id, c => ({ ...c, unread: true })); },
   adminReply(id: string, admin: { id: string; name: string }, text: string): ThreadMessage {
     const c = find(id); if (!c) throw new SupportStoreError('not-found');

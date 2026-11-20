@@ -282,4 +282,13 @@ insert into public.road_advisory_impacts (advisory_id, target_type, segment_id, 
   ('rw-expired', 'service', null, null, 'srv:legarda-cubao', null),
   ('rw-unrelated', 'stop', null, 'marikina-sports', null, null);
 
+-- Demo support contact channels (placeholders — replace with real channels in production)
+insert into public.support_contact_channels (id, kind, label, value, sort_order, is_active) values
+  ('00000000-0000-4000-8000-000000000200', 'email', 'Email (demo)', 'support@sakaywise.example', 10, true),
+  ('00000000-0000-4000-8000-000000000201', 'phone', 'Hotline (demo placeholder)', '+63 2 0000 0000', 20, true),
+  ('00000000-0000-4000-8000-000000000202', 'messenger', 'Facebook Messenger (demo)', 'm.me/sakaywise.example', 30, true)
+on conflict (id) do update set kind = excluded.kind, label = excluded.label, value = excluded.value, sort_order = excluded.sort_order, is_active = excluded.is_active;
+
+update public.support_auto_reply_settings set support_hours = 'Monday to Saturday, 8:00 AM – 6:00 PM (demo)' where id;
+
 commit;

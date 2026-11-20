@@ -4,6 +4,8 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getLiveClient } from '../../../shared/backend/runtime';
+import { createClientId } from '../../commuter/lib/clientId';
+import { validateAutoReply, type AutoReplyConfig, type ContactChannel } from '../../../shared/messaging/autoReply';
 import type {
   AdminAccount, AdminView, Announcement, AnnouncementDraft, Audience, ConversationStatus, DirectMessage, Incident, IncidentDraft,
   IncidentStatus, MessagePurpose, Promo, PromoDraft, PromoStatus, QueueReportStatus, RouteOption,
@@ -114,7 +116,7 @@ const loaders: Record<Module, (supabase: SupabaseClient) => Promise<Partial<Admi
   },
   async support(supabase) {
     const rows = await data<ConversationRow[]>(supabase.from('support_conversations')
-      .select('id,owner_id,category,subject,status,nickname,contact_email,related_trip,created_at,updated_at,last_message_at,flagged_spam')
+      .select('id,owner_id,category,subject,status,nickname,contact_email,related_trip,created_at,updated_at,last_message_at,flagged_spam,staff_unread')
       .order('updated_at', { ascending: false }).limit(LIMITS.conversations));
     const messages = rows.length ? await data<MessageRow[]>(supabase.from('support_messages')
       .select('id,conversation_id,sender_type,sender_id,message,created_at,read_at,request_id')
@@ -171,6 +173,7 @@ async function refresh(modules: Module[]) {
 const tableModules: Record<string, Module[]> = {
   promos: ['promos', 'activity'], announcements: ['announcements', 'activity'], admin_messages: ['messages', 'activity'],
   queue_reports: ['queue', 'activity'], road_advisories: ['incidents', 'activity'], support_conversations: ['support'], support_messages: ['support', 'users'],
+  support_contact_channels: ['activity'], support_auto_reply_settings: ['activity'],
 };
 let started = 0;
 let cleanup: (() => void)[] = [];
@@ -202,6 +205,15 @@ function release() {
   if (!started) { cleanup.forEach(fn => fn()); cleanup = []; }
 }
 
+/** While the Help Center is open, refresh conversations every 10 s so new messages and "Seen" receipts
+ *  show up quickly even where Realtime is unavailable (Realtime still pushes changes immediately). */
+export function useLiveSupportWatch() {
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(['support']); }, 10000);
+    return () => window.clearInterval(timer);
+  }, []);
+}
+
 export function useLiveAdminState(): AdminView {
   useEffect(() => { start(); return release; }, []);
   return useSyncExternalStore(cb => { listeners.add(cb); return () => listeners.delete(cb); }, () => view, () => view);
@@ -215,7 +227,8 @@ async function mutate<T>(modules: Module[], run: (supabase: SupabaseClient) => P
   await refresh(modules);
   return result;
 }
-const requestId = () => crypto.randomUUID();
+// crypto.randomUUID is missing on plain-HTTP LAN previews; createClientId falls back to getRandomValues.
+const requestId = () => createClientId();
 const find = <T extends { id: string }>(list: T[], id: string) => list.find(item => item.id === id);
 
 export const liveAdminStore = {
@@ -285,6 +298,31 @@ export const liveAdminStore = {
   deleteAnnouncement: (id: string) => mutate(['announcements', 'activity'], async supabase => { await must(supabase.from('announcements').delete().eq('id', id).select('id').single()); }),
 
   async resetDemoData() { throw new LiveActionError('Demo data reset is not available in live mode.'); },
+
+  /* ---------- Support auto-reply (text + alternative contact channels; the database sends the reply) ---------- */
+  async loadAutoReply(): Promise<AutoReplyConfig> {
+    const supabase = await getLiveClient();
+    const [settings] = await data<{ enabled: boolean; message: string; support_hours: string }[]>(supabase.from('support_auto_reply_settings').select('enabled,message,support_hours').limit(1));
+    const channels = await data<{ id: string; kind: ContactChannel['kind']; label: string; value: string; is_active: boolean }[]>(
+      supabase.from('support_contact_channels').select('id,kind,label,value,is_active').order('sort_order').order('label'));
+    if (!settings) throw new LiveActionError('Auto-reply settings are missing. Apply migration 20261120120000.');
+    return { enabled: settings.enabled, message: settings.message, supportHours: settings.support_hours,
+      channels: channels.map(c => ({ id: c.id, kind: c.kind, label: c.label, value: c.value, active: c.is_active })) };
+  },
+  /** Saves the settings row and the channel list (channels missing from `config` are deleted). */
+  saveAutoReply: (config: AutoReplyConfig, before: AutoReplyConfig) => mutate(['activity'], async supabase => {
+    const problem = validateAutoReply(config); if (problem) throw new LiveActionError(problem);
+    await must(supabase.from('support_auto_reply_settings').update({ enabled: config.enabled, message: config.message.trim(), support_hours: config.supportHours.trim() }).eq('id', true).select('id').single());
+    const kept = new Set(config.channels.map(c => c.id));
+    for (const old of before.channels) if (!kept.has(old.id)) await must(supabase.from('support_contact_channels').delete().eq('id', old.id).select('id').single());
+    const known = new Set(before.channels.map(c => c.id));
+    for (const [index, c] of config.channels.entries()) {
+      const row = { kind: c.kind, label: c.label.trim(), value: c.value.trim(), is_active: c.active, sort_order: (index + 1) * 10 };
+      await must(known.has(c.id)
+        ? supabase.from('support_contact_channels').update(row).eq('id', c.id).select('id').single()
+        : supabase.from('support_contact_channels').insert(row).select('id').single());
+    }
+  }),
 };
 
 export type LiveIncident = Incident;

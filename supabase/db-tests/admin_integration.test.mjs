@@ -51,16 +51,19 @@ test('admin user list: staff only, commuters only (no staff, no idle guests)', a
 test('Help Center: a commuter message reaches staff; reply, unread, spam and status round-trip', async () => {
   const convo = await as(db, commuter, async tx => (await rows(tx, `select * from support_create_conversation('fare', $1)`, [randomUUID()]))[0]);
   await as(db, commuter, tx => tx.query('select * from support_send_message($1, $2, $3)', [convo.id, 'Is the student fare applied?', randomUUID()]));
-  const inbox = await as(db, support, tx => rows(tx, `select c.id, c.flagged_spam, m.message, m.read_at from support_conversations c join support_messages m on m.conversation_id = c.id where c.id = $1`, [convo.id]));
+  const inbox = await as(db, support, tx => rows(tx, `select c.id, c.flagged_spam, m.message, m.read_at from support_conversations c join support_messages m on m.conversation_id = c.id where c.id = $1 and m.sender_type = 'commuter'`, [convo.id]));
   assert.deepEqual(inbox.map(r => [r.message, r.read_at, r.flagged_spam]), [['Is the student fare applied?', null, false]]);
 
   await as(db, support, tx => tx.query('select support_mark_read($1)', [convo.id]));
   await as(db, support, tx => tx.query('select support_mark_unread($1)', [convo.id]));
-  assert.equal((await rows(db, `select read_at from support_messages where conversation_id = $1 and sender_type = 'commuter'`, [convo.id]))[0].read_at, null);
+  // "Mark unread" is an inbox flag for staff; the commuter's "Seen" receipt is kept.
+  const [afterUnread] = await rows(db, `select m.read_at, c.staff_unread from support_messages m join support_conversations c on c.id = m.conversation_id where m.conversation_id = $1 and m.sender_type = 'commuter'`, [convo.id]);
+  assert.ok(afterUnread.read_at);
+  assert.equal(afterUnread.staff_unread, true);
 
   await as(db, support, tx => tx.query('select * from support_send_message($1, $2, $3)', [convo.id, 'Yes, with a valid ID.', randomUUID()]));
   const thread = await as(db, commuter, tx => rows(tx, 'select sender_type, message from support_messages where conversation_id = $1 order by created_at, id', [convo.id]));
-  assert.deepEqual(thread.map(m => m.sender_type), ['commuter', 'admin']);
+  assert.deepEqual(thread.map(m => m.sender_type), ['commuter', 'system', 'admin'], 'automated reply sits between the commuter message and the staff reply');
 
   await as(db, support, tx => tx.query('select * from support_set_spam($1, true)', [convo.id]));
   await assert.rejects(as(db, commuter, tx => tx.query('select * from support_set_spam($1, false)', [convo.id])), /forbidden/);

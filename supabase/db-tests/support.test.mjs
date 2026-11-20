@@ -64,7 +64,7 @@ test('admin replies require a support role; status and read receipts follow real
   let [c] = await as(db, staff, tx => rows(tx, 'select status, assigned_admin_id from support_conversations where id = $1', [convo.id]));
   assert.deepEqual(c, { status: 'pending', assigned_admin_id: staff.id });
   assert.equal((await messages(guest, convo.id)).find(m => m.sender_type === 'admin').read_at, null);
-  assert.equal(await as(db, guest, async tx => (await rows(tx, 'select support_mark_read($1) n', [convo.id]))[0].n), 1);
+  assert.equal(await as(db, guest, async tx => (await rows(tx, 'select support_mark_read($1) n', [convo.id]))[0].n), 2, 'the automated reply and the staff reply');
   assert.equal(await as(db, staff, async tx => (await rows(tx, 'select support_mark_read($1) n', [convo.id]))[0].n), 1);
   await as(db, staff, tx => tx.query(`select * from support_set_status($1, 'resolved')`, [convo.id]));
   await send(guest, convo.id, 'One more question');
@@ -81,7 +81,7 @@ test('message ordering, idempotency and validation', async () => {
   const first = await send(guest, convo.id, 'first', requestId);
   assert.equal((await send(guest, convo.id, 'first', requestId)).id, first.id);
   await send(guest, convo.id, 'second');
-  assert.deepEqual((await messages(guest, convo.id)).map(m => m.message), ['first', 'second']);
+  assert.deepEqual((await messages(guest, convo.id)).filter(m => m.sender_type === 'commuter').map(m => m.message), ['first', 'second']);
   await assert.rejects(send(guest, convo.id, '   '), /empty_message/);
   await assert.rejects(send(guest, convo.id, 'x'.repeat(2001)), /message_too_long/);
   await assert.rejects(send(guest, convo.id, 'second'), /duplicate_message/);

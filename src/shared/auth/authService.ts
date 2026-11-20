@@ -1,6 +1,7 @@
 import type { AuthResult, AuthService, AuthUser, CustomerRecord, RegisterInput } from './types';
 import { LIVE_MODE } from '../backend/runtime';
 import { liveAuthService } from './liveAuthService';
+import { sha256Hex } from './sha256';
 
 /**
  * DEMO AUTH — browser storage only.
@@ -49,7 +50,8 @@ const storedAccounts = (): StoredAccount[] => {
 const logins = () => readJson<Record<string, string>>(LOGINS_KEY, {});
 
 async function sha256(text: string): Promise<string> {
-  if (!globalThis.crypto?.subtle) throw new Error('secure-context');
+  // crypto.subtle is missing on plain-http LAN addresses (phone testing via `npm run lan`).
+  if (!globalThis.crypto?.subtle) return sha256Hex(text);
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }

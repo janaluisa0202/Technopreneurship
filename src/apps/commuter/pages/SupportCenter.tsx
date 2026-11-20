@@ -5,6 +5,8 @@ import { useSupportCenter } from '../hooks/useSupportCenter';
 import { supportCategories } from '../lib/supportService';
 import { useI18n } from '../../../shared/i18n';
 import type { SupportCategory, SupportMessage } from '../types/support';
+import { messageTime } from '../../../shared/messaging/autoReply';
+import { contactHref, useSupportContacts } from '../../../shared/messaging/supportContacts';
 
 const faqs = [
   ['How do I search for a route?', 'Open Routes, choose your origin and destination, and confirm their address details. Mapped journeys are calculated automatically.'],
@@ -31,17 +33,53 @@ function FaqList() {
 }
 
 const statusLabels = { open: 'Waiting for support', pending: 'Support replied', resolved: 'Resolved', closed: 'Closed' } as const;
-function deliveryLabel(message: SupportMessage): string {
-  if (message.senderType !== 'commuter') return message.senderType === 'admin' ? 'SakayWise support' : 'System message';
-  return message.deliveryStatus === 'saved-local'
-    ? 'Saved on this device'
-    : message.readAt
-      ? 'Seen by support'
-      : message.deliveryStatus === 'sent'
-        ? 'Sent to support'
-        : message.deliveryStatus === 'failed'
-          ? 'Not sent'
-          : 'Sending...';
+const authorLabel = (message: SupportMessage) => (message.senderType === 'admin' ? 'Support team' : message.senderType === 'system' ? 'SakayWise (automated)' : 'You');
+
+/** "Sent 1:05 PM · Seen 1:07 PM" for the commuter's own messages; the times come from the server. */
+function MessageFooter({ message }: { message: SupportMessage }) {
+  const { text, locale } = useI18n();
+  const at = (iso: string) => <time dateTime={iso} title={new Date(iso).toLocaleString(locale)}>{messageTime(iso, locale)}</time>;
+  if (message.senderType !== 'commuter') return <footer>{at(message.createdAt)}<span>{text(message.senderType === 'admin' ? 'SakayWise support' : 'Automated reply')}</span></footer>;
+  if (message.deliveryStatus === 'saved-local') return <footer>{at(message.createdAt)}<span>{text('Saved on this device')}</span></footer>;
+  if (message.deliveryStatus === 'failed') return <footer>{at(message.createdAt)}<span>{text('Not sent')}</span></footer>;
+  if (message.deliveryStatus === 'pending') return <footer>{at(message.createdAt)}<span>{text('Sending...')}</span></footer>;
+  return (
+    <footer className="support-receipt">
+      <span>{text('Sent')} {at(message.createdAt)}</span>
+      <span>{message.readAt ? <>{text('Seen')} {at(message.readAt)}</> : text('Not seen yet')}</span>
+    </footer>
+  );
+}
+
+/** Alternative contact channels configured by the support team (never hard-coded here). */
+function ContactChannels() {
+  const { text } = useI18n();
+  const contacts = useSupportContacts();
+  if (!contacts || (!contacts.channels.length && !contacts.supportHours)) return null;
+  return (
+    <section className="card support-contacts" aria-label={text('Other ways to reach us')}>
+      <h3>{text('Other ways to reach us')}</h3>
+      {contacts.channels.length > 0 && (
+        <ul>
+          {contacts.channels.map(channel => {
+            const href = contactHref(channel);
+            return <li key={channel.id}><span>{channel.label}</span>{href ? <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">{channel.value}</a> : <strong>{channel.value}</strong>}</li>;
+          })}
+        </ul>
+      )}
+      {contacts.supportHours && <p>{text('Support hours')}: {contacts.supportHours}</p>}
+    </section>
+  );
+}
+
+function usePageVisible() {
+  const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+  return visible;
 }
 
 function SupportCenterSignedIn({ onBack, returnFocus }: { onBack: () => void; returnFocus?: string }) {
@@ -50,13 +88,15 @@ function SupportCenterSignedIn({ onBack, returnFocus }: { onBack: () => void; re
   const support = useSupportCenter();
   const remote = support.mode === 'remote';
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hasUnreadReply = support.messages.some(message => message.senderType === 'admin' && !message.readAt);
+  // Replies from support and the automated reply both count; marking them read is what shows support "Seen".
+  const hasUnreadReply = support.messages.some(message => message.senderType !== 'commuter' && !message.readAt);
+  const pageVisible = usePageVisible();
 
   useEffect(() => {
-    if (section === 'message' && support.conversationId && hasUnreadReply) {
+    if (section === 'message' && pageVisible && support.conversationId && hasUnreadReply) {
       void support.markRead(support.conversationId);
     }
-  }, [section, support.conversationId, hasUnreadReply, support.markRead]);
+  }, [section, pageVisible, support.conversationId, hasUnreadReply, support.markRead]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -130,13 +170,10 @@ function SupportCenterSignedIn({ onBack, returnFocus }: { onBack: () => void; re
             )}
             <div className="support-conversation" role="log" aria-label={text(remote ? 'Support conversation' : 'Conversation with support')} aria-live="polite">
               {support.messages.map(message => (
-                <article className="support-message" key={message.id}>
-                  <strong>{text(message.senderType === 'admin' ? 'Support team' : message.senderType === 'system' ? 'System message' : 'You')}</strong>
+                <article className={`support-message from-${message.senderType}`} key={message.id}>
+                  <strong>{text(authorLabel(message))}</strong>
                   <p>{message.message}</p>
-                  <footer>
-                    <time dateTime={message.createdAt}>{new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time>
-                    <span>{text(deliveryLabel(message))}</span>
-                  </footer>
+                  <MessageFooter message={message} />
                 </article>
               ))}
             </div>
@@ -181,6 +218,7 @@ function SupportCenterGuest({ onBack, returnFocus, onSignIn }: { onBack: () => v
             <button type="button" className="submit" onClick={() => onSignIn('signin')}>{text('Sign in')}</button>
             <button type="button" className="small-outline" onClick={() => onSignIn('register')}>{text('Create an account')}</button>
           </div>
+          <ContactChannels />
         </div>
       )}
     </ApplicationPanel>

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Icon } from '../components/Icon';
 import { Chips, ConfirmDialog, EmptyState, PageHeader, Pill, SearchBox, useDebounced, useNow, useToast } from '../components/ui';
 import { run } from '../lib/actions';
-import { adminStore, useAdminState } from '../services/store';
+import { adminStore, useAdminState, useSupportWatch } from '../services/store';
+import { messageTime } from '../../../shared/messaging/autoReply';
+import type { ThreadMessage } from '../../../shared/messaging/types';
 import { go } from '../lib/router';
 import { fullDate, initials, timeAgo } from '../lib/format';
 import { supportCategoryLabels } from '../lib/labels';
@@ -35,13 +37,25 @@ export function HelpCenter({ selectedId }: { selectedId?: string }) {
   const visible = conversations.filter(c => !c.flaggedSpam);
   const count = (fn: (c: Conversation) => boolean) => visible.filter(fn).length;
 
-  useEffect(() => { if (selected?.unread) void adminStore.markConversationRead(selected.id).catch(() => {}); }, [selected?.id, selected?.unread]);
+  useSupportWatch();
+  // Records "Seen" when staff actually look at a conversation: on opening it, and when a new commuter message
+  // arrives while it is open and the tab is visible. "Mark unread" is not undone, because nothing new arrived.
+  const pageVisible = usePageVisible();
+  const lastCommuter = selected?.messages.filter(m => m.senderType === 'commuter').at(-1)?.id ?? '';
+  const seenKey = useRef('');
+  useEffect(() => {
+    if (!selected || !pageVisible) return;
+    const key = `${selected.id}:${lastCommuter}`;
+    if (seenKey.current === key) return;
+    seenKey.current = key;
+    if (selected.unread) void adminStore.markConversationRead(selected.id).catch(() => { seenKey.current = ''; });
+  }, [selected, lastCommuter, pageVisible]);
 
   return (
     <>
       <PageHeader title="Help Center" subtitle="Read and answer concerns sent from the commuter app." />
       <div className="notice"><Icon name="info" size={18} /><span>{sync.mode === 'live'
-        ? 'Replies are delivered to the commuter’s Help & Support chat. Opening a conversation marks the commuter’s messages as seen. The newest 200 conversations are loaded.'
+        ? 'Replies are delivered to the commuter’s Help & Support chat. Opening a conversation shows the commuter “Seen” with the time; “Mark unread” only changes your inbox. New conversations get the automated reply set in Settings. The newest 200 conversations are loaded.'
         : 'Demo mode: replies show up instantly in the customer’s Help & Support chat, but only in this browser. A backend will deliver them across devices.'}</span></div>
       <div className="inbox">
         <section className="inbox-list panel" aria-label="Conversations">
@@ -70,7 +84,7 @@ export function HelpCenter({ selectedId }: { selectedId?: string }) {
                       <span className="convo-main">
                         <span className="convo-top"><strong>{c.nickname || 'Guest'}</strong><small>{timeAgo(c.lastMessageAt, now)}</small></span>
                         <span className="convo-sub">{supportCategoryLabels[c.category]}</span>
-                        <span className="clamp">{last?.senderType === 'admin' ? 'You: ' : ''}{last?.message}</span>
+                        <span className="clamp">{last?.senderType === 'admin' ? 'You: ' : last?.senderType === 'system' ? 'Automated reply: ' : ''}{last?.message}</span>
                       </span>
                       <span className="convo-badges">{c.unread && <span className="dot on" aria-label="Unread" />}<Pill tone={statusTone[c.status]}>{c.status}</Pill></span>
                     </button>
@@ -86,6 +100,24 @@ export function HelpCenter({ selectedId }: { selectedId?: string }) {
       </div>
     </>
   );
+}
+
+/** Delivery receipt for messages sent to the commuter: when it was sent and when the commuter opened it. */
+function Receipt({ message: m }: { message: ThreadMessage }) {
+  const sent = <>Sent <time dateTime={m.createdAt}>{messageTime(m.createdAt, 'en-PH')}</time></>;
+  return m.readAt
+    ? <>{sent} · Seen <time dateTime={m.readAt} title={fullDate(m.readAt)}>{messageTime(m.readAt, 'en-PH')}</time></>
+    : <>{sent} · Not seen yet</>;
+}
+
+function usePageVisible() {
+  const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+  return visible;
 }
 
 function Thread({ conversation: c }: { conversation: Conversation }) {
@@ -129,10 +161,11 @@ function Thread({ conversation: c }: { conversation: Conversation }) {
       <div className="messages" tabIndex={0} aria-label="Messages">
         <p className="thread-note">Started {fullDate(c.createdAt)}</p>
         {c.messages.map(m => (
-          <div key={m.id} className={`bubble-row ${m.senderType === 'admin' ? 'mine' : ''}`}>
+          <div key={m.id} className={`bubble-row ${m.senderType === 'commuter' ? '' : 'mine'} ${m.senderType === 'system' ? 'system' : ''}`}>
             <div className="bubble">
-              <small>{m.senderType === 'admin' ? m.senderName : c.nickname || 'Guest'} · {fullDate(m.createdAt)}</small>
+              <small>{m.senderType === 'admin' ? m.senderName : m.senderType === 'system' ? 'Automated reply' : c.nickname || 'Guest'} · <time dateTime={m.createdAt} title={fullDate(m.createdAt)}>{messageTime(m.createdAt, 'en-PH')}</time></small>
               <p>{m.message}</p>
+              {m.senderType !== 'commuter' && <small className="receipt"><Receipt message={m} /></small>}
             </div>
           </div>
         ))}

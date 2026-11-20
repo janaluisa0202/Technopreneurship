@@ -1010,5 +1010,12 @@ export const fil = {
   "Saved Routes": "Mga Na-save na Ruta",
   "Contact Support": "Humingi ng Tulong",
   "Fares": "Pamasahe",
+  "Sent": "Naipadala",
+  "Seen": "Nakita",
+  "Not seen yet": "Hindi pa nakikita",
+  "Automated reply": "Awtomatikong sagot",
+  "SakayWise (automated)": "SakayWise (awtomatiko)",
+  "Other ways to reach us": "Iba pang paraan para makausap kami",
+  "Support hours": "Oras ng support",
   "Alerts": "Mga Abiso"
 } satisfies Record<TranslationKey,string>;

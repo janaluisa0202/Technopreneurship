@@ -51,7 +51,7 @@ export const toQueueReport = (r: QueueReportRow, terminals: Map<string, string>,
   ...(r.moderation_status !== 'unreviewed' && r.moderated_at ? { reviewedBy: nameOf(names, r.moderated_by, 'SakayWise staff'), reviewedAt: iso(r.moderated_at) } : {}),
 });
 
-export interface ConversationRow { id: string; owner_id: string; category: SupportCategory; subject: string; status: Conversation['status']; nickname: string | null; contact_email: string | null; related_trip: string | null; created_at: string; updated_at: string; last_message_at: string | null; flagged_spam: boolean; }
+export interface ConversationRow { id: string; owner_id: string; category: SupportCategory; subject: string; status: Conversation['status']; nickname: string | null; contact_email: string | null; related_trip: string | null; created_at: string; updated_at: string; last_message_at: string | null; flagged_spam: boolean; staff_unread?: boolean; }
 export interface MessageRow { id: string; conversation_id: string; sender_type: ThreadMessage['senderType']; sender_id: string | null; message: string; created_at: string; read_at: string | null; request_id: string; }
 export interface ProfileRow { user_id: string; display_name: string | null; email: string | null; }
 export function toConversations(rows: ConversationRow[], messages: MessageRow[], names: Names, emails: Map<string, string>): Conversation[] {
@@ -65,12 +65,12 @@ export function toConversations(rows: ConversationRow[], messages: MessageRow[],
       ...(nickname ? { nickname } : {}), ...((r.contact_email || emails.get(r.owner_id)) ? { email: r.contact_email || emails.get(r.owner_id) } : {}),
       ...(r.related_trip ? { relatedTrip: r.related_trip } : {}),
       createdAt: iso(r.created_at), lastMessageAt: iso(r.last_message_at ?? r.created_at),
-      // Unread for staff = a commuter message no admin has opened yet (server read receipt).
-      unread: thread.some(m => m.sender_type === 'commuter' && !m.read_at),
+      // Unread for staff = a commuter message no admin has opened yet (server read receipt), or "Mark unread".
+      unread: !!r.staff_unread || thread.some(m => m.sender_type === 'commuter' && !m.read_at),
       flaggedSpam: r.flagged_spam,
       messages: thread.map(m => ({
         id: m.id, senderType: m.sender_type, senderId: m.sender_id ?? '',
-        senderName: m.sender_type === 'commuter' ? (nickname ?? 'Commuter') : m.sender_type === 'admin' ? nameOf(names, m.sender_id, 'SakayWise support') : 'System',
+        senderName: m.sender_type === 'commuter' ? (nickname ?? 'Commuter') : m.sender_type === 'admin' ? nameOf(names, m.sender_id, 'SakayWise support') : 'Automated reply',
         message: m.message, createdAt: iso(m.created_at), ...(m.read_at ? { readAt: iso(m.read_at) } : {}), requestId: m.request_id,
       })),
     };
@@ -91,6 +91,7 @@ const areas: Record<string, [ActivityArea, string]> = {
   promos: ['promo', 'promo'], announcements: ['announcement', 'announcement'], road_advisories: ['incident', 'incident'],
   road_advisory_impacts: ['incident', 'incident mapping'], queue_reports: ['queue', 'queue report'], support_conversations: ['support', 'conversation'],
   support_messages: ['support', 'message'], admin_messages: ['message', 'message'], auth: ['auth', 'session'],
+  support_contact_channels: ['support', 'support contact channel'], support_auto_reply_settings: ['support', 'support auto-reply'],
   admin_role_assignments: ['system', 'admin role'], fare_matrices: ['system', 'fare matrix'], fare_rules: ['system', 'fare rule'],
 };
 const str = (value: unknown) => (typeof value === 'string' ? value : undefined);

@@ -21,6 +21,7 @@ Status legend: **Live** = reads/writes Supabase in live mode, verified · **Part
 | QueueSense report + estimates | Supabase RPCs | Admin moderation never reached it; no spam state | **Live**; admin approve/reject/spam is the same row; spam + rejected excluded from estimates |
 | RoadWatch / Para Alerts advisories | Supabase `road_advisories` | Admin incidents never reached it | **Live**; admin-posted incidents appear (labelled "SakayWise advisory") via Realtime + reload |
 | Help & Support chat | Supabase (anonymous session) | Not tied to the signed-in account; admin could not see it | **Live**; conversations owned by the signed-in account; admin replies, status, read receipts round-trip |
+| Sent/Seen receipts, automated reply (2026-11-20) | — | Mark unread erased the commuter's "Seen" and was undone instantly | **Live + demo**: server timestamps, receipts never cleared, `staff_unread` inbox flag; DB trigger sends the auto-reply with staff-managed contact channels (Admin → Settings) |
 | Support unread badge | demo store only (forced 0 in live) | — | **Live**: count of unread support replies, Realtime + polling |
 | Announcements, promos, broadcast messages | not shown anywhere | Admin content never reached commuters | **Live**: new *Para Alerts → Updates* section (published announcements, active promos, all-user and matching route messages) |
 | Account card in Settings / sign-out | demo account | — | **Live** account |

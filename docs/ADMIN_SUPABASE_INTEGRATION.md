@@ -51,7 +51,7 @@ Additive and safe to apply on the existing project (it creates new objects, adds
 1. `npx supabase db push` (applies the new migration).
 2. **Authentication → Providers → Email**: enabled. For a classroom demo you can turn off "Confirm email". With it on, new users get a confirmation link and the app shows "Confirm your email".
 3. **Authentication → URL Configuration**: set *Site URL* to where the app is hosted and add it to *Redirect URLs*. The password-reset link returns there, and the app shows a "Set a new password" form.
-4. Anonymous sign-ins are **no longer required** (commuters now sign in). Leaving them enabled is harmless.
+4. **Authentication → Providers → Anonymous sign-ins: enabled.** Guests use the app without an account, and a guest's queue report is stored under an anonymous Supabase session (`ensureGuestSession`). With it off, guest queue reports fail in live mode. Support chat itself requires a real account.
 5. Bootstrap admins (SQL editor), then sign in at `/` with that account:
    ```sql
    insert into public.admin_role_assignments (user_id, role)
@@ -117,3 +117,22 @@ A forbidden action shows "Your admin role does not allow this action" and nothin
 3. "Load more" pagination in the Help Center and Activity log.
 4. Per-account sync of saved trips and preferences.
 5. Schedule `private.purge_expired_data()` once retention periods are agreed.
+
+
+## Support messaging: seen receipts and automated reply (2026-11-20)
+
+Migration `20261120120000_support_receipts_and_auto_reply.sql` (apply with `npx supabase db push`).
+
+**Sent / Seen timestamps.** Both come from the server: `support_messages.created_at` is "Sent", `read_at` is "Seen".
+- The commuter app shows `Sent 1:05 PM · Seen 1:07 PM` (or `Not seen yet`) under the commuter's own messages; the admin Help Center shows the same receipt under staff replies and the automated reply.
+- `support_mark_read` is called by the *reader*: staff opening a conversation (only while the tab is visible) marks the commuter's messages; the commuter viewing the chat marks staff and automated messages.
+- Receipts are set once and never cleared or moved (trigger `support_messages_receipt_guard`). Admin "Mark unread" now sets `support_conversations.staff_unread` instead of erasing the commuter's "Seen".
+- Fixed: the Help Center no longer re-marks a conversation read right after "Mark unread"; it only marks again when a new commuter message arrives.
+- Updates arrive by Realtime; without it, the Help Center polls every 10 s while open and the commuter chat every 10 s while visible.
+
+**Automated reply.** When a commuter sends a message and neither staff nor the auto-reply has answered in that conversation within 24 hours, the database inserts one `system` message (trigger `support_messages_auto_reply`) containing:
+the configured message, "Other ways to reach us" with each active contact channel, and the support hours. It does not change the conversation status, so the conversation still counts as waiting for staff.
+- Configure it in **Admin → Settings → Support auto-reply** (on/off, message, hours, contact channels). Only `support_staff`/`admin`/`super_admin` can save (RLS); edits are in the activity log.
+- Tables: `support_auto_reply_settings` (one row), `support_contact_channels` (kind, label, value, order, shown). Both are publicly readable, because guests also see the channels on the Help & Support screen.
+- **Production starts with no contact channels.** Add the team's real email, phone and page in Settings before the demo. The local seed adds obviously fake ones (`support@sakaywise.example`, `+63 2 0000 0000`).
+- Demo mode mirrors the same rule and text in the browser (`src/shared/messaging/autoReply.ts`).

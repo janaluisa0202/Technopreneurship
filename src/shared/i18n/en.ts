@@ -1010,6 +1010,13 @@ export const en = {
   "Saved Routes": "Saved Routes",
   "Contact Support": "Contact Support",
   "Fares": "Fares",
+  "Sent": "Sent",
+  "Seen": "Seen",
+  "Not seen yet": "Not seen yet",
+  "Automated reply": "Automated reply",
+  "SakayWise (automated)": "SakayWise (automated)",
+  "Other ways to reach us": "Other ways to reach us",
+  "Support hours": "Support hours",
   "Alerts": "Alerts"
 } as const;
 export type TranslationKey=keyof typeof en;
