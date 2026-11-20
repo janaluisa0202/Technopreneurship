@@ -14,11 +14,12 @@ export function translate(language:Language,key:string|undefined,values:Record<s
       const lower=key.toLowerCase();
       const caseKey=caseKeys.get(lower);
       const patterns:[RegExp,(match:RegExpMatchArray)=>string][]=[
+        [/^Too many attempts\. Try again in (\d+) seconds\.$/,m=>`Maraming pagsubok na. Subukang muli pagkalipas ng ${m[1]} segundo.`],
         [/^Recommended because this route has the (.+)\.$/,m=>`Iminumungkahi ang rutang ito dahil mayroon itong ${tr(m[1])}.`],
         [/^Board the sample (.+) service; confirm the actual stop and signboard with the operator\.$/,m=>`Sumakay sa halimbawang ${tr(m[1])}; tiyakin sa operator ang aktuwal na hintuan at karatula.`],
         [/^(\d+(?:\.\d+)?) min of explicitly supplied additional travel delay\.$/,m=>`${m[1]} min na dagdag sa biyahe ayon sa ibinigay na tantiya.`],
         [/^Saved trip guides, (\d+) saved$/,m=>`Mga na-save na gabay, ${m[1]} naka-save`],
-        [/^(Para Alerts|My Alerts), (\d+) matching advisories$/,m=>`${tr(m[1])}, ${m[2]} katugmang abiso`],
+        [/^(Para Alerts|My Alerts|Alerts), (\d+) matching advisories$/,m=>`${tr(m[1])}, ${m[2]} katugmang abiso`],
         [/^(.+) content$/,m=>`Nilalaman ng ${tr(m[1])}`],
         [/^Current (origin|destination)$/,m=>`Kasalukuyang ${tr(m[1])}`],
         [/^(\d+) places?$/,m=>`${m[1]} lugar`],

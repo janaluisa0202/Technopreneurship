@@ -1,5 +1,7 @@
 # SakayWise backend handoff
 
+> **Update (backend integration):** the backend described here is now implemented on `feature/backend-integration`. See [BACKEND_INTEGRATION.md](BACKEND_INTEGRATION.md). The contracts below were kept; the statements about "no backend" describe the pre-integration state.
+
 Read this before adding Supabase. The frontend is a functioning local academic demo. There is no configured backend, client SDK, Auth, RLS, server endpoint, realtime subscription, push service or geographic map. The audit adds contracts and demo adapters, **not backend implementations**. No environment variable currently changes data mode.
 
 ## Data-access boundaries and actual wiring
@@ -113,3 +115,36 @@ Validators reject malformed arrays, nested snapshots, enum values and timestamps
 5. Implement private guest-scoped support and authenticated admin replies/subscriptions; update delivery labels only from real acknowledgments. Define migration/retention explicitly.
 6. Add a geographic map only after verified coordinates/geometry/provider/attribution are available. The present expanded panel is a truthful unavailable state plus guide, not a tile-based map.
 7. Test authorization denial/cross-guest isolation on the backend, then run frontend typecheck, tests, build and mobile regression. Add deploy configuration only as a separate reviewed task.
+
+## Part 8 — commuter logout (20 November 2026)
+
+Commuter Settings now shows a full-width Log Out action at the bottom only for authenticated customers. Guests retain the existing Sign in/Create account entry. Confirmation supports Cancel/Escape, English/Filipino, all theme/text settings and an in-flight disabled state. Cancel never calls authentication. Confirm awaits the existing `authService.logout()` and returns to guest Routes only after success. Public route, fare, queue/advisory viewing and commute guides still require no account; messaging remains sign-in gated.
+
+### Shared authentication and scope
+
+Both entry points use the same auth service and, in live mode, the existing single Supabase client factory and `sakaywise:auth:v1` storage key. Logout keeps the SDK's existing **default/global** `signOut()` scope. It is not isolated to a visual interface: live sign-out can affect the other same-origin entry point/tabs and revoke other refresh sessions. It does not introduce a second client or manually delete SDK-managed tokens. The installed SDK handles already-absent/expired sessions through its normal sign-out path.
+
+The live service now checks returned SDK `{error}` values as well as rejected requests. A failed request does not clear its current user, fall back to local-only logout, announce success or intentionally redirect the commuter. Late session/profile resolutions are revision-guarded so they cannot restore an old account after sign-out. Authentication events update AppRoot, which resets protected views and remounts the commuter tree by user ID. The browser-demo service continues using its existing separate demo session mechanism; it now reports removal failures and notifies session listeners. Demo accounts remain a local prototype, not production access control.
+
+No files under `src/apps/admin/` were edited. One necessary change to the existing `src/admin-main.tsx` auth entry point replaces its unconditional `.finally()` redirect with success/error handlers, since the shared service now correctly rejects failed logout. Existing admin controls/roles/permission checks remain unchanged. An error uses its existing retry-note screen rather than falsely claiming successful sign-out.
+
+### Account privacy and retained device data
+
+After successful sign-out or an observed account change, the commuter front door removes only the outgoing account's local/remote support drafts (`sakaywise:support:draft:v2:<id>` and `sakaywise:support-remote-draft:v1:<id>`), releases the account support-service cache and resets the configured support adapter. Old demo-account support handles reject private mutations/reads after their account is no longer current. Remounting disposes active support/unread listeners and other commuter subscriptions and clears their React conversation/permission state. Remote support subscriptions also guard late session lookups, sign-out events and disposal, preventing a private channel from reopening after teardown.
+
+Server conversations and the shared demo support database are records, not disposable view caches: logout does not delete them. They can be read again only through the appropriate account flow; live access must remain enforced by Supabase RLS. Draft-removal failure is reported with a qualified successful-logout notice rather than silently claiming that every device draft was erased.
+
+Language, appearance, font scale and introduction completion remain untouched. Existing saved guides, journey selections and public/demo reports are **device-level**, not account-owned or remotely synchronized in this implementation; they are preserved. If account-owned saved routes are added later, scope those caches by account ID and register their logout cleanup explicitly. No bulk `localStorage.clear()` or SDK-token deletion is used.
+
+### Validation and limitations
+
+- `npm run typecheck`, `npm test` (**100 passing tests**) and `npm run build` passed, including the existing admin/backend integration tests. `git diff --check` passed.
+- New tests cover returned/thrown sign-out errors, retry, concurrent taps, awaiting success, absent-session success, narrowly scoped cleanup, blocked storage, translations, shared default SDK scope and late Realtime subscription races.
+- Browser demo checks: guest has no Logout; authenticated customer has bottom action; Cancel preserves account; confirmed logout shows success and guest Routes; private chat becomes sign-in gated; the prior account's draft is empty after reauthentication; logout persists after reload and preserves Filipino/Dark/130% plus introduction completion. Public Routes/Fare Matrix/Queues/Para Alerts remain usable. Existing demo admin login/logout was smoke-tested.
+- Confirmation layout checked at 320×568, 375×667, 390×844, 430×932, 812×375 landscape, 390×420 and 1440×900, including Filipino/Dark/130%. No overflow or undersized controls found. Tab trapping, Escape and return focus were checked. Final browser console contained no errors/warnings.
+- No live Supabase environment is configured locally. Hosted sign-out, cross-tab live-session propagation, real network failure and server RLS revocation were **not** exercised against a deployed project; those cases are covered by adapter/unit tests and must also be verified in staging. No backend or administrator credentials are needed for the local demo checks.
+- No commit or push was made, and route/fare/queue algorithms were unchanged.
+
+Files created: `src/shared/auth/logout.ts`, `src/apps/commuter/components/LogoutConfirmation.tsx`, `tests/logout.test.ts`.
+
+Files modified: `src/shared/AppRoot.tsx`, `src/shared/auth/authService.ts`, `src/shared/auth/liveAuthService.ts`, `src/shared/auth/types.ts`, `src/admin-main.tsx`, `src/apps/commuter/CommuterApp.tsx`, `src/apps/commuter/pages/SettingsPage.tsx`, `src/apps/commuter/components/ApplicationPanel.tsx`, `src/apps/commuter/components/Icon.tsx`, `src/apps/commuter/lib/accountSupportService.ts`, `src/apps/commuter/lib/supportService.ts`, `src/apps/commuter/services/supabase/remoteServices.ts`, `src/shared/i18n/en.ts`, `src/shared/i18n/fil.ts`, `src/styles.css`, and this handoff document.

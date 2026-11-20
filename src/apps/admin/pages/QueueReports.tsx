@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Chips, EmptyState, PageHeader, Pill, useNow, useToast } from '../components/ui';
+import { run } from '../lib/actions';
 import { adminStore, useAdminState } from '../services/store';
 import { QUEUE_REPORT_TTL_MS } from '../../commuter/lib/queues';
 import { fullDate, timeAgo } from '../lib/format';
@@ -11,7 +12,8 @@ const levelTone = { low: 'green', mid: 'yellow', high: 'red' } as const;
 const statusTone = { pending: 'yellow', approved: 'green', rejected: 'neutral', spam: 'red' } as const;
 
 export function QueueReports() {
-  const { queueReports } = useAdminState();
+  const { queueReports, sync } = useAdminState();
+  const live = sync.mode === 'live';
   const now = useNow();
   const toast = useToast();
   const [tab, setTab] = useState<QueueReportStatus>('pending');
@@ -24,11 +26,11 @@ export function QueueReports() {
     return [...byTerminal.values()];
   }, [queueReports]);
 
-  const act = (id: string, status: QueueReportStatus, msg: string) => { adminStore.reviewQueueReport(id, status); toast(msg); };
+  const act = (id: string, status: QueueReportStatus, msg: string) => { void run(toast, adminStore.reviewQueueReport(id, status), msg); };
 
   return (
     <>
-      <PageHeader title="Queue reports" subtitle="Review commuter-submitted queue reports so wrong or outdated ones never reach route recommendations." />
+      <PageHeader title="Queue reports" subtitle={live ? 'Review commuter queue reports from the last 7 days. Unreviewed reports count as unverified community data for 30 minutes; rejecting or marking spam removes them from commuter estimates immediately.' : 'Review commuter-submitted queue reports so wrong or outdated ones never reach route recommendations.'} />
       <div className="split wide-left">
         <section className="panel">
           <div className="panel-pad"><Chips label="Report status" value={tab} onChange={setTab} options={[

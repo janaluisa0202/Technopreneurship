@@ -1,11 +1,14 @@
 import type { AuthResult, AuthService, AuthUser, CustomerRecord, RegisterInput } from './types';
+import { LIVE_MODE } from '../backend/runtime';
+import { liveAuthService } from './liveAuthService';
 
 /**
  * DEMO AUTH — browser storage only.
  * Anything checked in the browser can be bypassed, so this must be replaced by the backend before real use:
  * the server has to verify credentials, issue the session, and decide whether someone is an admin or a customer.
  */
-export const DEMO_MODE = true;
+/** Demo mode = browser-only accounts below. Live mode (VITE_SAKAYWISE_DATA_MODE=live) = Supabase Auth. */
+export const DEMO_MODE = !LIVE_MODE;
 export const DEMO_ADMIN_PASSWORD = 'SakayWise-Admin1';
 export const DEMO_CUSTOMER_PASSWORD = 'SakayWise-User1';
 
@@ -71,6 +74,8 @@ export const customerDirectory = {
 };
 
 /* ---------- sessions ---------- */
+const sessionListeners=new Set<(user:AuthUser|null)=>void>();
+const notifySession=(user:AuthUser|null)=>sessionListeners.forEach(listener=>listener(user));
 let failures = 0;
 let lockedUntil = 0;
 
@@ -91,10 +96,11 @@ function startSession(user: AuthUser, keep: boolean) {
     localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY);
     (keep ? localStorage : sessionStorage).setItem(SESSION_KEY, session);
   } catch { /* the session still works for this page load */ }
+  notifySession(user);
   if (user.role === 'customer') { writeJson(LOGINS_KEY, { ...logins(), [user.id]: new Date().toISOString() }); refreshCustomers(); }
 }
 
-export const authService: AuthService = {
+const demoAuthService: AuthService = {
   async login(identifier, password, keep): Promise<AuthResult> {
     const now = Date.now();
     if (now < lockedUntil) return { ok: false, error: `Too many attempts. Try again in ${Math.ceil((lockedUntil - now) / 1000)} seconds.` };
@@ -155,7 +161,22 @@ export const authService: AuthService = {
     return null;
   },
 
-  logout() {
-    try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* nothing to clear */ }
+  async logout() {
+    // This is the existing DEMO session, not a Supabase token. Do not claim
+    // success when persistent demo-session removal fails.
+    for(const store of [localStorage,sessionStorage])store.removeItem(SESSION_KEY);
+    notifySession(null);
   },
+  async init() { return demoAuthService.restoreSession(); },
+  onChange(listener){
+    sessionListeners.add(listener);
+    const refresh=()=>listener(demoAuthService.restoreSession());
+    const changed=(event:StorageEvent)=>{if(event.key===SESSION_KEY)refresh();};
+    window.addEventListener('storage',changed);window.addEventListener('focus',refresh);
+    return()=>{sessionListeners.delete(listener);window.removeEventListener('storage',changed);window.removeEventListener('focus',refresh);};
+  },
+  isPasswordRecovery: () => false,
+  async updatePassword() { return { ok: false, error: 'Password changes need the live backend.' }; },
 };
+
+export const authService: AuthService = DEMO_MODE ? demoAuthService : liveAuthService;

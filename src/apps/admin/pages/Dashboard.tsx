@@ -21,7 +21,7 @@ export function Dashboard({ admin }: { admin: AdminAccount }) {
     { label: 'Open support messages', value: openSupport, icon: 'help', to: 'help', tone: 'blue', note: 'Waiting for a reply' },
     { label: 'Active incidents', value: activeIncidents, icon: 'incident', to: 'incidents', tone: 'red', note: 'Shown in RoadWatch' },
     { label: 'Unread messages', value: unread, icon: 'mail', to: 'help', tone: 'blue', note: 'Not opened yet' },
-    { label: 'Pending queue reports', value: pendingQueue, icon: 'queue', to: 'queue', tone: 'yellow', note: 'Need review' },
+    { label: 'Pending queue reports', value: pendingQueue, icon: 'queue', to: 'queue', tone: 'yellow', note: s.sync.mode === 'live' ? 'Unreviewed, last 7 days' : 'Need review' },
   ];
   const recentSupport = [...s.conversations].filter(c => !c.flaggedSpam).sort((a, b) => Date.parse(b.lastMessageAt) - Date.parse(a.lastMessageAt)).slice(0, 5);
   const latestIncidents = [...s.incidents].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 4);

@@ -1,4 +1,4 @@
-name: Frontend checks
+name: Frontend and database checks
 on:
   push:
     branches: [main, develop]
@@ -17,3 +17,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run seed:check
+      - run: npm run test:db

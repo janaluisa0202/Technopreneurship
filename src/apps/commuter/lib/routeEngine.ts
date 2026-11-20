@@ -1,4 +1,4 @@
-import { transportNetwork } from '../services/demoCatalog';
+import { transportNetwork } from '../services/catalog';
 import { fareForPassenger, totalFares } from './fares';
 import { queueForSegment } from './queues';
 import { applyAdvisoryImpacts } from './advisoryImpact';

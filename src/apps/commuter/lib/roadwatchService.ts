@@ -1,6 +1,6 @@
 import type { AdvisoryCategory, AdvisoryFilters, AdvisorySeverity, AdvisoryStatus, RoadAdvisory, RoadWatchPreferences } from '../types/roadwatch';
 import { normalizeLocationText } from './locations';
-import { transportNetwork } from '../services/demoCatalog';
+import { transportNetwork } from '../services/catalog';
 
 export const ADVISORY_FRESHNESS_MS = 24 * 60 * 60 * 1000;
 export const categoryLabels: Record<AdvisoryCategory,string> = { traffic:'Traffic', closure:'Road Closures', flooding:'Flooding', transport:'Public Transport', roadworks:'Roadworks' };
@@ -21,7 +21,7 @@ export function isRoadAdvisory(value:unknown):value is RoadAdvisory {
   if(!record(value))return false;
   if(!['id','title','description','areaName','sourceName'].every(key=>typeof value[key]==='string' && (value[key] as string).trim()))return false;
   if(!['traffic','closure','flooding','transport','roadworks'].includes(String(value.category)) || !['low','moderate','high','critical'].includes(String(value.severity)) || !['active','scheduled','resolved','expired','unknown'].includes(String(value.status)))return false;
-  if(!['demo','official','community','unknown'].includes(String(value.sourceType)) || !['simulated','verified','unverified'].includes(String(value.verificationStatus)))return false;
+  if(!['demo','official','community','operator','unknown'].includes(String(value.sourceType)) || !['simulated','verified','unverified'].includes(String(value.verificationStatus)))return false;
   if(!['informational','delay','service-interruption','segment-closure','unknown'].includes(String(value.impactType)) || typeof value.effectConfirmed!=='boolean')return false;
   if(!['affectedRouteIds','affectedSegmentIds','affectedStopIds','affectedServiceIds'].every(key=>Array.isArray(value[key]) && (value[key] as unknown[]).every(item=>typeof item==='string' && item.length>0)))return false;
   const published=advisoryTimestamp(value.publishedAt), updated=advisoryTimestamp(value.updatedAt);
@@ -67,7 +67,7 @@ export function trustedSourceUrl(advisory:RoadAdvisory):string|undefined {
   }catch{return undefined;}
 }
 export function advisorySourceLabel(advisory:RoadAdvisory):string {
-  return advisory.sourceType==='demo'?'Demo advisory':trustedSourceUrl(advisory)?'Official Advisory':'Unverified advisory';
+  return advisory.sourceType==='demo'?'Demo advisory':advisory.sourceType==='operator'?'SakayWise advisory':trustedSourceUrl(advisory)?'Official Advisory':'Unverified advisory';
 }
 export function canApplyOperationalEffect(advisory:RoadAdvisory):boolean {
   return advisory.effectConfirmed && ((advisory.sourceType==='demo' && advisory.verificationStatus==='simulated') || !!trustedSourceUrl(advisory));

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Icon } from '../components/Icon';
 import { Chips, ConfirmDialog, EmptyState, PageHeader, Pill, SearchBox, useDebounced, useNow, useToast } from '../components/ui';
-import { adminStore, useAdminState, ValidationError } from '../services/store';
+import { run } from '../lib/actions';
+import { adminStore, useAdminState } from '../services/store';
 import { go } from '../lib/router';
 import { fullDate, initials, timeAgo } from '../lib/format';
 import { supportCategoryLabels } from '../lib/labels';
 import type { Conversation, ConversationStatus, SupportCategory } from '../types';
 
-const statusTone = { open: 'blue', pending: 'yellow', resolved: 'green' } as const;
+const statusTone = { open: 'blue', pending: 'yellow', resolved: 'green', closed: 'neutral' } as const;
 const quickReplies = [
   'Thanks for reaching out! We are looking into this and will update you shortly.',
   'Thank you for the report. We have passed it to our team to verify.',
@@ -15,7 +16,7 @@ const quickReplies = [
 ];
 
 export function HelpCenter({ selectedId }: { selectedId?: string }) {
-  const { conversations } = useAdminState();
+  const { conversations, sync } = useAdminState();
   const now = useNow();
   const [query, setQuery] = useState('');
   const q = useDebounced(query).trim().toLowerCase();
@@ -34,12 +35,14 @@ export function HelpCenter({ selectedId }: { selectedId?: string }) {
   const visible = conversations.filter(c => !c.flaggedSpam);
   const count = (fn: (c: Conversation) => boolean) => visible.filter(fn).length;
 
-  useEffect(() => { if (selected?.unread) adminStore.markConversationRead(selected.id); }, [selected?.id, selected?.unread]);
+  useEffect(() => { if (selected?.unread) void adminStore.markConversationRead(selected.id).catch(() => {}); }, [selected?.id, selected?.unread]);
 
   return (
     <>
       <PageHeader title="Help Center" subtitle="Read and answer concerns sent from the commuter app." />
-      <div className="notice"><Icon name="info" size={18} /><span>Demo mode: replies show up instantly in the customer’s Help & Support chat, but only in this browser. A backend will deliver them across devices.</span></div>
+      <div className="notice"><Icon name="info" size={18} /><span>{sync.mode === 'live'
+        ? 'Replies are delivered to the commuter’s Help & Support chat. Opening a conversation marks the commuter’s messages as seen. The newest 200 conversations are loaded.'
+        : 'Demo mode: replies show up instantly in the customer’s Help & Support chat, but only in this browser. A backend will deliver them across devices.'}</span></div>
       <div className="inbox">
         <section className="inbox-list panel" aria-label="Conversations">
           <div className="inbox-filters">
@@ -86,15 +89,19 @@ export function HelpCenter({ selectedId }: { selectedId?: string }) {
 }
 
 function Thread({ conversation: c }: { conversation: Conversation }) {
+  const { sync } = useAdminState();
   const toast = useToast();
   const [text, setText] = useState('');
   const [confirmSpam, setConfirmSpam] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [c.messages.length]);
 
+  const [sending, setSending] = useState(false);
   function send() {
-    try { adminStore.reply(c.id, text); setText(''); toast('Reply saved.'); }
-    catch (error) { toast(error instanceof ValidationError ? error.message : 'Could not send the reply.', 'error'); }
+    if (sending) return;
+    setSending(true);
+    // Text is cleared only after the reply was stored, so a failed send keeps the draft.
+    void run(toast, adminStore.reply(c.id, text), 'Reply sent.', 'Could not send the reply.').then(ok => { setSending(false); if (ok) setText(''); });
   }
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); send(); } };
 
@@ -110,13 +117,13 @@ function Thread({ conversation: c }: { conversation: Conversation }) {
         </div>
         <div className="thread-actions">
           <label className="select-inline compact"><span className="sr-only">Concern status</span>
-            <select value={c.status} onChange={e => { adminStore.setConversationStatus(c.id, e.target.value as ConversationStatus); toast(`Marked ${e.target.value}.`); }}>
-              <option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option>
+            <select value={c.status} onChange={e => { void run(toast, adminStore.setConversationStatus(c.id, e.target.value as ConversationStatus), `Marked ${e.target.value}.`); }}>
+              <option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option>{(sync.mode === 'live' || c.status === 'closed') && <option value="closed">Closed (final)</option>}
             </select>
           </label>
-          {c.status !== 'resolved' && <button type="button" className="btn small ghost" onClick={() => { adminStore.setConversationStatus(c.id, 'resolved'); toast('Marked resolved.'); }}><Icon name="check" size={16} />Resolve</button>}
-          <button type="button" className="btn small ghost" onClick={() => adminStore.markConversationUnread(c.id)}>Mark unread</button>
-          <button type="button" className="btn small ghost" onClick={() => (c.flaggedSpam ? adminStore.setConversationSpam(c.id, false) : setConfirmSpam(true))}><Icon name="flag" size={16} />{c.flaggedSpam ? 'Not spam' : 'Spam'}</button>
+          {c.status !== 'resolved' && <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.setConversationStatus(c.id, 'resolved'), 'Marked resolved.'); }}><Icon name="check" size={16} />Resolve</button>}
+          <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.markConversationUnread(c.id), 'Marked unread.'); }}>Mark unread</button>
+          <button type="button" className="btn small ghost" onClick={() => (c.flaggedSpam ? void run(toast, adminStore.setConversationSpam(c.id, false), 'Spam flag removed.') : setConfirmSpam(true))}><Icon name="flag" size={16} />{c.flaggedSpam ? 'Not spam' : 'Spam'}</button>
         </div>
       </header>
       <div className="messages" tabIndex={0} aria-label="Messages">
@@ -141,10 +148,10 @@ function Thread({ conversation: c }: { conversation: Conversation }) {
         <label className="sr-only" htmlFor="reply-box">Reply to {c.nickname || 'commuter'}</label>
         <textarea id="reply-box" rows={3} value={text} maxLength={2000} placeholder="Write a reply…" onChange={e => setText(e.target.value)} onKeyDown={onKey} />
         <div className="composer-foot"><small>{text.length}/2000 · Ctrl + Enter to send. Replying moves open concerns to Pending.</small>
-          <button type="button" className="btn primary" onClick={send} disabled={!text.trim()}><Icon name="send" size={18} />Send reply</button></div>
+          <button type="button" className="btn primary" onClick={send} disabled={!text.trim() || sending}><Icon name="send" size={18} />Send reply</button></div>
       </div>
       {confirmSpam && <ConfirmDialog title="Flag as spam?" message="This conversation moves to the Spam filter and stops counting toward open or unread totals." confirmLabel="Flag as spam" danger
-        onCancel={() => setConfirmSpam(false)} onConfirm={() => { adminStore.setConversationSpam(c.id, true); setConfirmSpam(false); toast('Flagged as spam.'); }} />}
+        onCancel={() => setConfirmSpam(false)} onConfirm={() => { setConfirmSpam(false); void run(toast, adminStore.setConversationSpam(c.id, true), 'Flagged as spam.'); }} />}
     </>
   );
 }

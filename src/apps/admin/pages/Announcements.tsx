@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Icon } from '../components/Icon';
 import { Chips, ConfirmDialog, EmptyState, Field, Modal, PageHeader, Pill, useNow, useToast } from '../components/ui';
+import { run } from '../lib/actions';
 import { adminStore, useAdminState } from '../services/store';
 import { timeAgo } from '../lib/format';
 import { channelLabels } from '../lib/labels';
@@ -33,8 +34,8 @@ export function Announcements() {
               <div className="incident-top"><div className="incident-tags"><Pill tone={tone[a.status]}>{a.status}</Pill><Pill tone="blue">{channelLabels[a.channel]}</Pill></div><small>Updated {timeAgo(a.updatedAt, now)} · {a.createdBy}</small></div>
               <h2>{a.title}</h2><p>{a.body}</p>
               <div className="card-actions">
-                {a.status !== 'published' && <button type="button" className="btn small success" onClick={() => { adminStore.setAnnouncementStatus(a.id, 'published'); toast('Announcement published.'); }}><Icon name="send" size={16} />Publish</button>}
-                {a.status === 'published' && <button type="button" className="btn small ghost" onClick={() => { adminStore.setAnnouncementStatus(a.id, 'archived'); toast('Announcement archived.'); }}>Archive</button>}
+                {a.status !== 'published' && <button type="button" className="btn small success" onClick={() => { void run(toast, adminStore.setAnnouncementStatus(a.id, 'published'), 'Announcement published.'); }}><Icon name="send" size={16} />Publish</button>}
+                {a.status === 'published' && <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.setAnnouncementStatus(a.id, 'archived'), 'Announcement archived.'); }}>Archive</button>}
                 <button type="button" className="btn small ghost" onClick={() => setEditing({ item: a })}><Icon name="edit" size={16} />Edit</button>
                 <button type="button" className="btn small ghost danger-text" onClick={() => setDeleting(a)}><Icon name="trash" size={16} />Delete</button>
               </div>
@@ -43,7 +44,7 @@ export function Announcements() {
         </ul>
       )}
       {editing && <AnnouncementForm item={editing.item} onClose={() => setEditing(null)} />}
-      {deleting && <ConfirmDialog danger title="Delete announcement?" message={<>“{deleting.title}” will be removed permanently.</>} confirmLabel="Delete" onCancel={() => setDeleting(null)} onConfirm={() => { adminStore.deleteAnnouncement(deleting.id); setDeleting(null); toast('Announcement deleted.'); }} />}
+      {deleting && <ConfirmDialog danger title="Delete announcement?" message={<>“{deleting.title}” will be removed permanently.</>} confirmLabel="Delete" onCancel={() => setDeleting(null)} onConfirm={() => { setDeleting(null); void run(toast, adminStore.deleteAnnouncement(deleting.id), 'Announcement deleted.'); }} />}
     </>
   );
 }
@@ -52,17 +53,19 @@ function AnnouncementForm({ item, onClose }: { item?: Announcement; onClose: () 
   const toast = useToast();
   const [d, setD] = useState<AnnouncementDraft>({ title: item?.title ?? '', body: item?.body ?? '', channel: item?.channel ?? 'general', status: item?.status ?? 'draft' });
   const [errors, setErrors] = useState<{ title?: string; body?: string }>({});
+  const [saving, setSaving] = useState(false);
   function submit(event: FormEvent) {
     event.preventDefault();
     const e: typeof errors = {};
     if (!d.title.trim()) e.title = 'Add a headline.'; else if (d.title.length > 100) e.title = 'Keep the headline to 100 characters.';
     if (!d.body.trim()) e.body = 'Write the announcement.'; else if (d.body.length > 600) e.body = 'Keep the text to 600 characters.';
     setErrors(e); if (Object.keys(e).length) return;
-    adminStore.saveAnnouncement({ ...d, title: d.title.trim(), body: d.body.trim() }, item?.id);
-    toast(d.status === 'published' ? 'Announcement published.' : 'Announcement saved.'); onClose();
+    setSaving(true);
+    void run(toast, adminStore.saveAnnouncement({ ...d, title: d.title.trim(), body: d.body.trim() }, item?.id), d.status === 'published' ? 'Announcement published.' : 'Announcement saved.', 'Could not save the announcement.')
+      .then(ok => { setSaving(false); if (ok) onClose(); });
   }
   return (
-    <Modal title={item ? 'Edit announcement' : 'New announcement'} onClose={onClose} footer={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="submit" form="ann-form" className="btn primary">{d.status === 'published' ? 'Save & publish' : 'Save'}</button></>}>
+    <Modal title={item ? 'Edit announcement' : 'New announcement'} onClose={onClose} footer={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="submit" form="ann-form" className="btn primary" disabled={saving}>{d.status === 'published' ? 'Save & publish' : 'Save'}</button></>}>
       <form id="ann-form" onSubmit={submit} noValidate className="form-stack">
         <Field label="Headline" htmlFor="ann-title" error={errors.title}><input id="ann-title" data-autofocus value={d.title} onChange={e => setD({ ...d, title: e.target.value })} aria-invalid={!!errors.title} /></Field>
         <Field label="Text" htmlFor="ann-body" error={errors.body} hint={`${d.body.length}/600`}><textarea id="ann-body" rows={4} value={d.body} onChange={e => setD({ ...d, body: e.target.value })} aria-invalid={!!errors.body} /></Field>

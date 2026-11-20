@@ -54,3 +54,8 @@ test('subscriptions notify local changes, unsubscribe cleanly, and returned reco
 test('invalid persisted timestamps cannot crash support history rendering',async()=>{
   const {store,service}=setup();const conversation=await service.createConversation(draft);await service.sendMessage(conversation.id,draft.message,'request-1');const state=JSON.parse(store.getItem(SUPPORT_STORAGE_KEY)!);state.messages[0].createdAt='invalid date';store.setItem(SUPPORT_STORAGE_KEY,JSON.stringify(state));assert.deepEqual(await createLocalSupportService(store).getConversationsForSession(),[]);
 });
+test('authentication labels and validation are localized without altering user email parameters',()=>{
+  for(const key of ['Full name','Forgot password?','Incorrect email or password.','Unable to continue. Check your connection and try again.','Keep me signed in'])assert.notEqual(translate('fil',key),key);
+  assert.ok(translate('fil','We sent a confirmation link to {email}. Open it, then sign in.',{email:'commuter@example.test'}).includes('commuter@example.test'));
+  assert.ok(translate('fil','Too many attempts. Try again in 12 seconds.').includes('12 segundo'));
+});

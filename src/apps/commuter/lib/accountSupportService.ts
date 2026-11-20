@@ -30,33 +30,39 @@ const clean = (value: string, max: number) => value.trim().slice(0, max) || unde
 function createAccountSupportService(user: AuthUser): SupportService {
   const draftKey = `sakaywise:support:draft:v2:${user.id}`;
   const defaults = (): SupportDraft => ({ ...emptySupportDraft(), nickname: user.name, email: user.email });
-  const ownConversation = (id: string) => { const c = supportStore.getConversation(id); if (!c || c.userId !== user.id) throw new SupportError('conversation'); return c; };
+  const isCurrent=()=>{const current=authService.restoreSession();return current?.id===user.id && current.role==='customer';};
+  const requireCurrent=()=>{if(!isCurrent())throw new SupportError('unavailable');};
+  const ownConversation = (id: string) => { requireCurrent();const c = supportStore.getConversation(id); if (!c || c.userId !== user.id) throw new SupportError('conversation'); return c; };
   const fields = (draft: SupportDraft) => ({ category: draft.category, nickname: clean(draft.nickname, 80), email: clean(draft.email, 254), relatedTrip: clean(draft.relatedTrip, 200) });
   return {
     mode: 'local-demo',
     async createConversation(draft) {
+      requireCurrent();
       const error = validateSupportDraft(draft); if (error) throw new SupportError(error);
       return toConversation(supportStore.createConversation(user.id, fields(draft)));
     },
     async updateConversationMetadata(id, draft) {
+      requireCurrent();
       const error = validateSupportDraft(draft); if (error) throw new SupportError(error);
       try { supportStore.updateMetadata(user.id, id, fields(draft)); } catch (e) { mapError(e); }
     },
     async sendMessage(id, message, requestId) {
+      requireCurrent();
       try { return toMessage(supportStore.customerSend(user.id, id, user.name, message, requestId), id); } catch (e) { return mapError(e); }
     },
     async getConversationMessages(id) { return ownConversation(id).messages.map(m => toMessage(m, id)); },
-    async getConversationsForSession() { return supportStore.forUser(user.id).map(toConversation).sort((a, b) => Date.parse(b.lastMessageAt ?? b.createdAt) - Date.parse(a.lastMessageAt ?? a.createdAt)); },
-    subscribeToMessages: listener => supportStore.subscribe(listener),
+    async getConversationsForSession() { return (isCurrent()?supportStore.forUser(user.id):[]).map(toConversation).sort((a, b) => Date.parse(b.lastMessageAt ?? b.createdAt) - Date.parse(a.lastMessageAt ?? a.createdAt)); },
+    subscribeToMessages: listener => supportStore.subscribe(()=>{if(isCurrent())listener();}),
     async markConversationRead(id) { ownConversation(id); supportStore.markReadByCustomer(user.id, id); },
     async getDraft() {
+      if(!isCurrent())return emptySupportDraft();
       try {
         const raw = JSON.parse(localStorage.getItem(draftKey) || 'null') as Partial<SupportDraft> | null;
         if (raw && typeof raw.message === 'string') return { ...defaults(), ...raw };
       } catch { /* use defaults */ }
       return defaults();
     },
-    async saveDraft(draft) { try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch { throw new SupportError('storage'); } },
+    async saveDraft(draft) { requireCurrent();try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch { throw new SupportError('storage'); } },
   };
 }
 
@@ -69,3 +75,5 @@ export function getAccountSupportService(): SupportService {
   if (!service) { service = createAccountSupportService(user); cache.set(user.id, service); }
   return service;
 }
+
+export function clearAccountSupportCache(userId:string){cache.delete(userId);}

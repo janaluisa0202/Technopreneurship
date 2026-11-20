@@ -1,4 +1,4 @@
-import { demoPlaces, sampleTrips } from '../services/demoCatalog';
+import { catalogPlaces, legacyTrips } from '../services/catalog';
 import { analyzeRouteRecommendations } from './routeEngine';
 import { advisoryMatchesRoute } from './advisoryImpact';
 import { advisoryState } from './roadwatchService';
@@ -8,9 +8,9 @@ import type { RoadAdvisory, RoadWatchPreferences } from '../types/roadwatch';
 export function watchedPair(value:string|null):{originId:string;destinationId:string}|undefined {
   if(!value)return undefined;
   const [originId,destinationId]=value.split(':');
-  if(demoPlaces.some(place=>place.id===originId) && demoPlaces.some(place=>place.id===destinationId))return {originId,destinationId};
-  const legacy=sampleTrips.find(trip=>trip.id===value);
-  const from=demoPlaces.find(place=>place.name===legacy?.from),to=demoPlaces.find(place=>place.name===legacy?.to);
+  if(catalogPlaces.some(place=>place.id===originId) && catalogPlaces.some(place=>place.id===destinationId))return {originId,destinationId};
+  const legacy=legacyTrips.find(trip=>trip.id===value);
+  const from=catalogPlaces.find(place=>place.name===legacy?.from),to=catalogPlaces.find(place=>place.name===legacy?.to);
   return from && to?{originId:from.id,destinationId:to.id}:undefined;
 }
 export function personalAdvisoryMatches(advisories:RoadAdvisory[],watch:string|null,saved:SavedTrip[],preferences:RoadWatchPreferences,passenger:Passenger,reports:QueueReport[],now:number){

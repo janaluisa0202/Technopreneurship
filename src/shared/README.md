@@ -1,5 +1,7 @@
 # Shared: login + customer ⇄ admin chat
 
+> **Live mode is implemented.** With `VITE_SAKAYWISE_DATA_MODE=live`, `authService` is `liveAuthService.ts` (Supabase Auth; admin role from the server via `my_admin_roles()`), and support chat uses the Supabase tables on both sides. The demo implementation described below is what runs in demo mode. See `docs/ADMIN_SUPABASE_INTEGRATION.md`.
+
 ## How sign-in works
 
 `/` is the only front door. `src/shared/AppRoot.tsx`:

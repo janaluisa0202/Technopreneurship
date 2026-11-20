@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Icon } from '../components/Icon';
 import { Chips, ConfirmDialog, EmptyState, Field, Modal, PageHeader, Pill, SearchBox, useDebounced, useToast } from '../components/ui';
-import { adminStore, useAdminState, ValidationError } from '../services/store';
+import { run } from '../lib/actions';
+import { adminStore, useAdminState } from '../services/store';
 import { dateOnly, todayISO } from '../lib/format';
 import { promoTypeLabels } from '../lib/labels';
 import type { Promo, PromoDraft, PromoType } from '../types';
@@ -55,7 +56,7 @@ export function Promos() {
                     <td>
                       <div className="row-actions">
                         {e !== 'expired' && (
-                          <button type="button" className="btn small ghost" onClick={() => { adminStore.setPromoStatus(p.id, p.status === 'active' ? 'inactive' : 'active'); toast(p.status === 'active' ? 'Promo deactivated.' : 'Promo activated.'); }}>
+                          <button type="button" className="btn small ghost" onClick={() => { void run(toast, adminStore.setPromoStatus(p.id, p.status === 'active' ? 'inactive' : 'active'), p.status === 'active' ? 'Promo deactivated.' : 'Promo activated.'); }}>
                             {p.status === 'active' ? 'Deactivate' : 'Activate'}
                           </button>
                         )}
@@ -73,7 +74,7 @@ export function Promos() {
 
       {editing && <PromoForm promo={editing.promo} onClose={() => setEditing(null)} />}
       {deleting && <ConfirmDialog danger title="Delete promo?" message={<>“{deleting.title}” will be removed for commuters. This cannot be undone.</>} confirmLabel="Delete promo"
-        onCancel={() => setDeleting(null)} onConfirm={() => { adminStore.deletePromo(deleting.id); setDeleting(null); toast('Promo deleted.'); }} />}
+        onCancel={() => setDeleting(null)} onConfirm={() => { setDeleting(null); void run(toast, adminStore.deletePromo(deleting.id), 'Promo deleted.'); }} />}
     </>
   );
 }
@@ -82,6 +83,7 @@ function PromoForm({ promo, onClose }: { promo?: Promo; onClose: () => void }) {
   const toast = useToast();
   const [draft, setDraft] = useState<PromoDraft>(() => promo ? { title: promo.title, description: promo.description, type: promo.type, startDate: promo.startDate, endDate: promo.endDate, appliesTo: promo.appliesTo, status: promo.status } : blank());
   const [errors, setErrors] = useState<Partial<Record<keyof PromoDraft, string>>>({});
+  const [saving, setSaving] = useState(false);
   const set = <K extends keyof PromoDraft>(key: K, value: PromoDraft[K]) => setDraft(d => ({ ...d, [key]: value }));
 
   function submit(event: FormEvent) {
@@ -98,17 +100,15 @@ function PromoForm({ promo, onClose }: { promo?: Promo; onClose: () => void }) {
     if (draft.appliesTo.length > 120) next.appliesTo = 'Keep this to 120 characters.';
     setErrors(next);
     if (Object.keys(next).length) return;
-    try {
-      adminStore.savePromo({ ...draft, title: draft.title.trim(), description: draft.description.trim(), appliesTo: draft.appliesTo.trim() }, promo?.id);
-      toast(promo ? 'Promo updated.' : 'Promo added.');
-      onClose();
-    } catch (error) { toast(error instanceof ValidationError ? error.message : 'Could not save the promo.', 'error'); }
+    setSaving(true);
+    void run(toast, adminStore.savePromo({ ...draft, title: draft.title.trim(), description: draft.description.trim(), appliesTo: draft.appliesTo.trim() }, promo?.id),
+      promo ? 'Promo updated.' : 'Promo added.', 'Could not save the promo.').then(ok => { setSaving(false); if (ok) onClose(); });
   }
 
   return (
     <Modal title={promo ? 'Edit promo' : 'New promo'} onClose={onClose} wide footer={<>
       <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-      <button type="submit" form="promo-form" className="btn primary">{promo ? 'Save changes' : 'Add promo'}</button>
+      <button type="submit" form="promo-form" className="btn primary" disabled={saving}>{promo ? 'Save changes' : 'Add promo'}</button>
     </>}>
       <form id="promo-form" onSubmit={submit} noValidate className="form-grid">
         <Field label="Promo title" htmlFor="promo-title" error={errors.title}><input id="promo-title" data-autofocus value={draft.title} maxLength={90} onChange={e => set('title', e.target.value)} aria-invalid={!!errors.title} /></Field>
