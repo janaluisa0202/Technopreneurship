@@ -7,7 +7,7 @@ import './auth.css';
 type Mode = 'signin' | 'register' | 'forgot' | 'sent' | 'confirm' | 'recovery';
 
 /** One sign-in page for everyone. The caller decides where each role goes (see AppRoot). */
-export function LoginPage({ onSignedIn, initialMode = 'signin' }: { onSignedIn: (user: AuthUser) => void; initialMode?: Mode }) {
+export function LoginPage({ onSignedIn, onBack, initialMode = 'signin' }: { onSignedIn: (user: AuthUser) => void; onBack?: () => void; initialMode?: Mode }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -66,9 +66,10 @@ export function LoginPage({ onSignedIn, initialMode = 'signin' }: { onSignedIn: 
       <section className="auth-brand">
         <img className="auth-logo" src={logo} alt="SakayWise: Plan, Ride, Fare, Go" width={461} height={383} decoding="async" />
         <p className="auth-tag">Your smarter way to commute.</p>
-        <p className="auth-copy">Sign in to plan routes, check fares and queues, and chat with the SakayWise support team.</p>
+        <p className="auth-copy">Sign in or create an account to chat with the SakayWise support team. Planning routes and checking fares, queues and advisories needs no account.</p>
       </section>
       <section className="auth-card">
+        {onBack && <button type="button" className="auth-back" onClick={onBack}>← Back to SakayWise</button>}
 
         {mode === 'signin' && (
           <form onSubmit={signIn} noValidate>

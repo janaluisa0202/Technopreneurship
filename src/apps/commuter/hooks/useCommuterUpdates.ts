@@ -40,11 +40,11 @@ export function useCommuterUpdates(routeKeys: Set<string>): CommuterUpdatesState
 }
 
 /** Unread support replies: demo store in demo mode; Supabase read receipts (Realtime + polling) in live mode. */
-export function useSupportUnread(accountId: string): number {
-  const demoCount = useCustomerUnread(accountId);
+export function useSupportUnread(accountId?: string): number {
+  const demoCount = useCustomerUnread(accountId ?? '');
   const [liveCount, setLiveCount] = useState(0);
   useEffect(() => {
-    if (!LIVE_MODE) return;
+    if (!LIVE_MODE || !accountId) { setLiveCount(0); return; } // guests have no support replies
     let active = true;
     const load = () => getLiveClient().then(countUnreadSupportReplies).then(n => { if (active) setLiveCount(n); }).catch(() => {});
     void load();

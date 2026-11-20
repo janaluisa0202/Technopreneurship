@@ -13,8 +13,22 @@ const faqs = [
   ['How do I report a queue?', 'Open Queues, tap Report a queue, choose the matching terminal and queue condition, then submit the local demo report.'],
   ['How do I check road advisories?', 'Open Para Alerts and RoadWatch. Search or filter the simulated notices, then open a notice for its source, effective period, and mapped alternatives.'],
   ['How do I save a trip?', 'Tap Save trip on a route card or in route details. Open the saved icon in the header to view your locally stored guides.'],
-  ['Do I need an account to use SakayWise?', 'Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.'],
+  ['Do I need an account to use SakayWise?', 'No. You can plan routes, compare fares, check queues and read road advisories without an account. You only need to sign in or create an account to message the support team, so they can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.'],
 ] as const;
+
+function FaqList() {
+  const { text } = useI18n();
+  return (
+    <div className="application-panel-scroll faq-list">
+      {faqs.map(([question, answer]) => (
+        <details className="card faq-item" key={question}>
+          <summary>{text(question)}<Icon name="chevron" size={18} /></summary>
+          <p>{text(answer)}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
 
 const statusLabels = { open: 'Waiting for support', pending: 'Support replied', resolved: 'Resolved', closed: 'Closed' } as const;
 function deliveryLabel(message: SupportMessage): string {
@@ -30,7 +44,7 @@ function deliveryLabel(message: SupportMessage): string {
           : 'Sending...';
 }
 
-export function SupportCenter({ onBack, returnFocus }: { onBack: () => void; returnFocus?: string }) {
+function SupportCenterSignedIn({ onBack, returnFocus }: { onBack: () => void; returnFocus?: string }) {
   const { text, locale } = useI18n();
   const [section, setSection] = useState<'faq' | 'message'>('faq');
   const support = useSupportCenter();
@@ -62,14 +76,7 @@ export function SupportCenter({ onBack, returnFocus }: { onBack: () => void; ret
       </div>
 
       {section === 'faq' ? (
-        <div className="application-panel-scroll faq-list">
-          {faqs.map(([question, answer]) => (
-            <details className="card faq-item" key={question}>
-              <summary>{text(question)}<Icon name="chevron" size={18} /></summary>
-              <p>{text(answer)}</p>
-            </details>
-          ))}
-        </div>
+        <FaqList />
       ) : (
         <>
           <div className="support-chat-scroll" ref={scrollRef}>
@@ -150,4 +157,36 @@ export function SupportCenter({ onBack, returnFocus }: { onBack: () => void; ret
       )}
     </ApplicationPanel>
   );
+}
+
+/** Guests can read the FAQ; messaging support needs an account so the team can reply. */
+function SupportCenterGuest({ onBack, returnFocus, onSignIn }: { onBack: () => void; returnFocus?: string; onSignIn: (mode: 'signin' | 'register') => void }) {
+  const { text } = useI18n();
+  const [section, setSection] = useState<'faq' | 'message'>('faq');
+  return (
+    <ApplicationPanel title="Help & Support" onBack={onBack} returnFocus={returnFocus}>
+      <div className="support-top">
+        <p>{text('Need assistance with SakayWise?')}</p>
+        <div className="segment" role="group" aria-label={text('Support sections')}>
+          <button type="button" className={section === 'faq' ? 'on' : ''} aria-pressed={section === 'faq'} onClick={() => setSection('faq')}>{text('Frequently Asked Questions')}</button>
+          <button type="button" className={section === 'message' ? 'on' : ''} aria-pressed={section === 'message'} onClick={() => setSection('message')}>{text('Message Support')}</button>
+        </div>
+      </div>
+      {section === 'faq' ? <FaqList /> : (
+        <div className="application-panel-scroll">
+          <div className="support-empty" role="status">
+            <Icon name="message" size={28} />
+            <h3>{text('Sign in to chat with support')}</h3>
+            <p>{text('Messaging the support team needs an account so we can send our replies to you. Browsing routes, fares, queues and advisories stays free without one.')}</p>
+            <button type="button" className="submit" onClick={() => onSignIn('signin')}>{text('Sign in')}</button>
+            <button type="button" className="small-outline" onClick={() => onSignIn('register')}>{text('Create an account')}</button>
+          </div>
+        </div>
+      )}
+    </ApplicationPanel>
+  );
+}
+
+export function SupportCenter({ signedIn, onSignIn, onBack, returnFocus }: { signedIn: boolean; onSignIn: (mode: 'signin' | 'register') => void; onBack: () => void; returnFocus?: string }) {
+  return signedIn ? <SupportCenterSignedIn onBack={onBack} returnFocus={returnFocus} /> : <SupportCenterGuest onBack={onBack} returnFocus={returnFocus} onSignIn={onSignIn} />;
 }

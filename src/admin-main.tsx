@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { AdminApp } from './apps/admin/AdminApp';
 import { authService, DEMO_MODE } from './shared/auth/authService';
 import { liveConfigProblem } from './shared/backend/runtime';
+import { signInUrl } from './shared/auth/routes';
 import type { AdminAccount } from './apps/admin/types';
 
-const home = import.meta.env.BASE_URL;
+const home = signInUrl(import.meta.env.BASE_URL);
 const root = createRoot(document.getElementById('root')!);
 const note = (text: string, retry = false) => root.render(
   <div role={retry ? 'alert' : 'status'} style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
@@ -23,7 +24,7 @@ async function start() {
   let user;
   try { user = await authService.init(); } catch { note('Unable to reach the SakayWise server. Check your connection and try again.', true); return; }
   if (!user || user.role !== 'admin') {
-    // Not signed in, or a customer account: back to the shared login page.
+    // Not signed in, or a customer account: to the shared sign-in page (the front page is the open customer app).
     location.replace(home);
     return;
   }

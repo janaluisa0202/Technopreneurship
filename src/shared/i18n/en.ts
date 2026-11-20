@@ -877,7 +877,7 @@ export const en = {
   "Your name and email are shared only with the support team.": "Your name and email are shared only with the support team.",
   "You can ask for help without sharing a precise location. ": "You can ask for help without sharing a precise location. ",
   "Do I need an account to use SakayWise?": "Do I need an account to use SakayWise?",
-  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.",
+  "No. You can plan routes, compare fares, check queues and read road advisories without an account. You only need to sign in or create an account to message the support team, so they can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "No. You can plan routes, compare fares, check queues and read road advisories without an account. You only need to sign in or create an account to message the support team, so they can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.",
   "Find answers or message the SakayWise support team.": "Find answers or message the SakayWise support team.",
   "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.",
   "Account": "Account",
@@ -902,6 +902,11 @@ export const en = {
   "Seasonal promo": "Seasonal promo",
   "Message from SakayWise": "Message from SakayWise",
   "Route advisory": "Route advisory",
-  "Promo": "Promo"
+  "Promo": "Promo",
+  "Sign in": "Sign in",
+  "Create an account": "Create an account",
+  "Sign in to chat with support": "Sign in to chat with support",
+  "Messaging the support team needs an account so we can send our replies to you. Browsing routes, fares, queues and advisories stays free without one.": "Messaging the support team needs an account so we can send our replies to you. Browsing routes, fares, queues and advisories stays free without one.",
+  "You are using SakayWise as a guest. Routes, fares, queues and road advisories are open to everyone. Sign in or create an account to message the support team.": "You are using SakayWise as a guest. Routes, fares, queues and road advisories are open to everyone. Sign in or create an account to message the support team."
 } as const;
 export type TranslationKey=keyof typeof en;

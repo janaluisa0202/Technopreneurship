@@ -877,7 +877,7 @@ export const fil = {
   "Your name and email are shared only with the support team.": "Ang pangalan at email mo ay ibabahagi lang sa support team.",
   "You can ask for help without sharing a precise location. ": "Maaari kang humingi ng tulong nang hindi ibinabahagi ang eksaktong lokasyon. ",
   "Do I need an account to use SakayWise?": "Kailangan ko ba ng account para magamit ang SakayWise?",
-  "Yes. Sign in with your SakayWise account so the support team can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Oo. Mag-sign in gamit ang SakayWise account mo para makasagot ang support team. Nananatili sa browser na ito ang mga kagustuhan, address, naka-save na gabay, at ulat.",
+  "No. You can plan routes, compare fares, check queues and read road advisories without an account. You only need to sign in or create an account to message the support team, so they can reply to you. Preferences, addresses, saved guides, and reports stay in this browser.": "Hindi. Maaari kang magplano ng ruta, magkumpara ng pasahe, tumingin ng pila, at magbasa ng mga abiso sa kalsada nang walang account. Kailangan mo lang mag-sign in o gumawa ng account para magpadala ng mensahe sa support team, para makasagot sila sa iyo. Nananatili sa browser na ito ang mga preference, address, na-save na gabay, at report.",
   "Find answers or message the SakayWise support team.": "Humanap ng sagot o magpadala ng mensahe sa SakayWise support team.",
   "Prototype version 0.1.0 · No live GPS, official transit feed, or background push notifications. Your account is used for support messages.": "Prototype bersyon 0.1.0 · Walang live GPS, opisyal na transit feed, o background push notification. Ginagamit ang account mo para sa mga mensahe sa support.",
   "Account": "Account",
@@ -902,5 +902,10 @@ export const fil = {
   "Seasonal promo": "Pana-panahong promo",
   "Message from SakayWise": "Mensahe mula sa SakayWise",
   "Route advisory": "Abiso sa ruta",
-  "Promo": "Promo"
+  "Promo": "Promo",
+  "Sign in": "Mag-sign in",
+  "Create an account": "Gumawa ng account",
+  "Sign in to chat with support": "Mag-sign in para makipag-chat sa support",
+  "Messaging the support team needs an account so we can send our replies to you. Browsing routes, fares, queues and advisories stays free without one.": "Kailangan ng account sa pagmemensahe sa support team para maipadala namin sa iyo ang aming sagot. Libre pa ring gamitin nang walang account ang mga ruta, pasahe, pila at abiso.",
+  "You are using SakayWise as a guest. Routes, fares, queues and road advisories are open to everyone. Sign in or create an account to message the support team.": "Guest ka ngayon sa SakayWise. Bukas sa lahat ang mga ruta, pasahe, pila at abiso sa kalsada. Mag-sign in o gumawa ng account para makapagpadala ng mensahe sa support team."
 } satisfies Record<TranslationKey,string>;
